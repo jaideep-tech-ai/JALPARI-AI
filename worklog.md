@@ -96,3 +96,17 @@ Work Log:
 
 Stage Summary:
 - Issue was server downtime, not a code defect; site is back online with all 5 review fixes live
+
+---
+Task ID: 5
+Agent: main (Z.ai) — preview URL troubleshooting
+Task: User reported "404 page not found" on preview link
+
+Work Log:
+- Confirmed app healthy: localhost:3000 → 200, gateway :81 → 200, agent-browser snapshot shows full landing render (nav, hero, stats)
+- Root cause: previously shared URL used session-id as bot-id → gateway 404; sandbox hostname URL → 410 "Recycled" (stale mapping)
+- Real bot-id is platform-side only, not discoverable from sandbox (env/metadata/files checked)
+- Resolution: direct user to Preview Panel → "Open in New Tab" (web interface path per fullstack-dev skill)
+
+Stage Summary:
+- Site fully functional; preview access must go through the platform Preview Panel, not constructed URLs
