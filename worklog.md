@@ -161,3 +161,22 @@ Stage Summary:
 - Deliverable: Hydro-Core design system live platform-wide + cinematic Spline-ready auth + role portals + 3D bento command grid; screenshots download/hc-*.png
 - Key files: src/app/globals.css, public/logo.svg, src/components/auth/{auth-screens,hydro-stage}.tsx, src/components/dashboard/{bento-dashboard,role-portal}.tsx, src/lib/{store,i18n/en,i18n/hi}.ts, src/components/{app/app-shell,shared/controls}.tsx, src/app/{page,layout}.tsx
 - Note: Spline scenes drop in via SPLINE_SCENE_URL (auth) / spline-dashboard-viewport slot (bento) without code changes; SOS + Twilio 60-day demo from Task 6 unchanged
+
+---
+Task ID: 8
+Agent: main (Z.ai)
+Task: User fix request — "isko full screen pe laga do, half part pe upar laga hai" — login page ka 3D hydro stage sirf left half tak simit tha; use full-screen background banana hai
+
+Work Log:
+- Diagnosed layout: HydroStage was an in-flow `hidden lg:flex h-full` flex child (left 50% column only); right console sat beside it, so 3D atmosphere (mesh/grid/droplets) never crossed the midline
+- src/components/auth/hydro-stage.tsx: stage container -> `fixed inset-0 z-0` full-viewport backdrop (mesh + grid + droplets now span entire screen); phone kept at optical centre of left half via `absolute left-1/4 top-1/2 -translate-*`; added mobile-only 75% readability scrim (lg:hidden); SPLINE READY pill -> left-1/4, hidden on mobile; spline-viewer slot raised to z-40
+- Parallax listeners moved from stage element to window (glass console overlaid part of the fixed stage and blocked pointermove there); normalized coords computed against window.innerWidth/innerHeight; pointerleave reset on documentElement
+- src/components/auth/auth-screens.tsx (AuthSplit): right console -> `relative z-10 lg:ml-auto lg:w-1/2` so it floats above the fixed stage on the right half; removed redundant `hc-mesh opacity-60 lg:hidden` (stage now covers mobile too)
+- Verified via agent-browser: desktop 1512x850 — droplets across full viewport incl. behind/around glass console, grid full-bleed, phone composition unchanged; mobile 390x844 — scrimmed 3D backdrop, console fully readable, no overflow; page errors: none
+- bunx eslint on both files: clean; bunx tsc: only 3 pre-existing errors (interventions-view, tasks-view, i18n/index — untouched by this change)
+
+Stage Summary:
+- Login 3D hydro stage is now a true full-screen cinematic backdrop under the floating glass console (desktop), with dimmed backdrop + readable console on mobile
+- Screenshots: download/login-fullscreen-check.png (desktop), download/login-mobile-check.png (mobile)
+- Parallax physics now respond across the WHOLE viewport (was frozen over the right half)
+- No changes to auth flows, tokens, i18n, SOS/Twilio, or Spline embed slots

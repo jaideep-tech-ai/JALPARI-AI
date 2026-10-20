@@ -200,13 +200,11 @@ function AuthSplit({ active, title, sub, children }: { active: 'signin' | 'signu
   const setView = useAppStore((s) => s.setView);
   return (
     <div className="dark relative flex min-h-screen bg-[#060A13] text-white">
-      {/* LEFT — interactive hydro stage */}
+      {/* BACKGROUND — full-screen interactive hydro stage (fixed, sits under everything) */}
       <HydroStage />
 
-      {/* RIGHT — premium glassmorphic console */}
-      <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto px-4 py-10 lg:w-1/2">
-        <div className="hc-mesh opacity-60 lg:hidden" />
-
+      {/* RIGHT — premium glassmorphic console floating over the full-screen stage */}
+      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto px-4 py-10 lg:ml-auto lg:w-1/2">
         <button
           onClick={() => setView('landing')}
           className="absolute right-5 top-5 z-20 text-[12px] text-slate-500 transition-colors hover:text-white"

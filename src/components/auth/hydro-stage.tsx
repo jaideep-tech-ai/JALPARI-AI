@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * HYDRO STAGE — left half of the cinematic auth split-screen.
+ * HYDRO STAGE — full-screen cinematic backdrop behind the auth console.
  *
  * Layer 0: atmospheric light-blob mesh (Electric Cyan × Deep Emerald)
  * Layer 1: zero-gravity liquid-glass droplets (mouse-hover parallax physics)
@@ -44,17 +44,18 @@ export function HydroStage() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return; // static stage — global reduced-motion CSS freezes keyframes
 
+    // listen on window: the glass console overlays part of the fixed stage,
+    // so pointer events there never reach the stage element itself
     const onMove = (e: PointerEvent) => {
-      const r = stage.getBoundingClientRect();
-      target.current.x = ((e.clientX - r.left) / r.width - 0.5) * 2; // -1..1
-      target.current.y = ((e.clientY - r.top) / r.height - 0.5) * 2;
+      target.current.x = (e.clientX / window.innerWidth - 0.5) * 2; // -1..1
+      target.current.y = (e.clientY / window.innerHeight - 0.5) * 2;
     };
     const onLeave = () => {
       target.current.x = 0;
       target.current.y = 0;
     };
-    stage.addEventListener('pointermove', onMove);
-    stage.addEventListener('pointerleave', onLeave);
+    window.addEventListener('pointermove', onMove);
+    document.documentElement.addEventListener('pointerleave', onLeave);
 
     // spring-smoothed parallax loop
     const tick = () => {
@@ -73,8 +74,8 @@ export function HydroStage() {
     raf.current = requestAnimationFrame(tick);
 
     return () => {
-      stage.removeEventListener('pointermove', onMove);
-      stage.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('pointermove', onMove);
+      document.documentElement.removeEventListener('pointerleave', onLeave);
       cancelAnimationFrame(raf.current);
     };
   }, []);
@@ -83,12 +84,15 @@ export function HydroStage() {
     <div
       ref={stageRef}
       id="spline-3d-stage"
-      className="relative hidden h-full w-full items-center justify-center overflow-hidden lg:flex"
+      className="fixed inset-0 z-0 flex items-center justify-center overflow-hidden"
       aria-hidden="true"
     >
       {/* atmosphere */}
       <div className="hc-mesh" />
       <div className="absolute inset-0 jg-grid-lines opacity-40" />
+
+      {/* readability scrim on small screens — the console owns the viewport there */}
+      <div className="absolute inset-0 z-30 bg-[#060A13]/75 lg:hidden" />
 
       {/* Layer 1 — zero-gravity droplets (depth-scaled mouse parallax) */}
       <div ref={dropLayerRef} className="absolute inset-0" style={{ ['--px' as string]: 0, ['--py' as string]: 0 }}>
@@ -108,8 +112,8 @@ export function HydroStage() {
         ))}
       </div>
 
-      {/* Layer 2 — floating smartphone */}
-      <div className="hc-stage-3d relative z-10">
+      {/* Layer 2 — floating smartphone (kept at the optical centre of the left half) */}
+      <div className="hc-stage-3d absolute left-1/4 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
         <div ref={phoneRef} className="hc-phone relative">
           {/* chassis */}
           <div className="hc-phone-chassis relative h-[560px] w-[276px] p-[10px]">
@@ -156,11 +160,11 @@ export function HydroStage() {
       {SPLINE_SCENE_URL
         ? createElement('spline-viewer', {
             url: SPLINE_SCENE_URL,
-            className: 'absolute inset-0 z-30 h-full w-full',
+            className: 'absolute inset-0 z-40 h-full w-full',
             'events-target': 'local',
           })
         : (
-        <div className="absolute bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 backdrop-blur-md">
+        <div className="absolute bottom-5 left-1/4 z-40 hidden -translate-x-1/2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 backdrop-blur-md lg:block">
           <span className="text-[10px] font-medium tracking-[0.18em] text-white/45">
             SPLINE READY — SET SPLINE_SCENE_URL TO EMBED 3D
           </span>
