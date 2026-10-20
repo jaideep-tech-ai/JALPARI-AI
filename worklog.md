@@ -64,3 +64,21 @@ Stage Summary:
 - Landing page is now a premium, animated, accessible (reduced-motion safe) marketing surface in both languages
 - Screenshots: download/jg-hero-v2.png, jg-v2-*.png series
 - Key files: src/app/globals.css, src/components/landing/{landing-nav,landing-hero,landing-sections,landing-footer}.tsx, src/lib/i18n/{en,hi}.ts
+
+---
+Task ID: 3
+Agent: main (Z.ai) — UI review fixes
+Task: Fix 5 review findings on landing page (step-06 duplicate, control-room heading duplicate, A1 tiny grey text, A2 invisible form fields, B1 dense intro)
+
+Work Log:
+- Issue 1: workflow loop-back banner now uses new wfLoop key ("The loop never stops — every verified outcome sharpens the next forecast." / हिन्दी mirror) instead of repeating step 06's wf6 text; restyled from uppercase tracking pill to normal-case sentence, max-w-md
+- Issue 2: solutions bento — card title/body de-duplicated: new muniCardTitle ("Municipal operations dashboard") + muniCardBody (ops detail); section muniBody rewritten as all-teams overview (officers/field/citizens/leadership) so no verbatim repeats
+- Issue B1: introBody cut from ~70-word six-verb chain to two short sentences in en.ts + hi.ts
+- Issue A1: bumped all sub-12px text to ≥12px (stat labels, ticker caption, demoTag strip, panel labels, gauge disclaimer/factors, chips, contact tile labels, footer attribution/columns/rights, kickers, mock rows); slate-500 → slate-400/300 on dark bg; emerald-600 → emerald-700 + red-500 → red-600 in light mode (AA normal-text), amber-600 → amber-700; terminal JSON punctuation slate-500 → slate-400
+- Issue A2: contact form fields (name/email/org/message) get fieldCls = border-slate-500 bg-slate-50 dark:border-slate-400/80 dark:bg-white/[0.07] — borders ≥3:1 against adjacent fill (WCAG 1.4.11)
+- Verified: lint 0/0, tsc clean in touched files (pre-existing unrelated errors only), next build passes, dev server renders
+- Browser verification: dark hero (labels/captions readable), workflow banner new copy, solutions card distinct title, contact fields visible dark+light, light-mode kicker/chip contrast, Hindi wfLoop + muniCardTitle render, mobile 390px scrollWidth=390 (no overflow)
+
+Stage Summary:
+- All 5 review items fixed in both languages with no layout regressions; screenshots in download/jg-fix-*.png
+- Key files: src/lib/i18n/{en,hi}.ts, src/components/landing/{landing-hero,landing-sections,landing-nav,landing-footer}.tsx

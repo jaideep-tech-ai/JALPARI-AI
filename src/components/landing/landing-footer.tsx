@@ -53,14 +53,14 @@ export function LandingFooter() {
               <SourceChip status="LIVE" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300" />
               <SourceChip status="SIMULATED" className="border-violet-500/30 bg-violet-500/10 text-violet-300" />
             </div>
-            <div className="mt-4 flex items-center gap-1.5 text-[11px] leading-relaxed text-slate-500">
+            <div className="mt-4 flex items-center gap-1.5 text-xs leading-relaxed text-slate-400">
               <ShieldCheck className="size-3.5 shrink-0 text-emerald-500/70" />
               {t('footerAttribution')}
             </div>
           </div>
           {cols.map((c) => (
             <div key={c.title}>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{c.title}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{c.title}</div>
               <ul className="mt-3 space-y-2">
                 {c.links.map((l) => (
                   <li key={l.label}>
@@ -74,7 +74,7 @@ export function LandingFooter() {
           ))}
         </div>
         <Separator className="my-8 bg-white/10" />
-        <p className="text-center text-[11.5px] leading-relaxed text-slate-500">{t('footerRights')}</p>
+        <p className="text-center text-xs leading-relaxed text-slate-400">{t('footerRights')}</p>
       </div>
     </footer>
   );

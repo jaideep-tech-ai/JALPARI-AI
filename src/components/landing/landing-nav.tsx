@@ -98,7 +98,7 @@ export function LandingNav() {
         </button>
 
         {/* Environment honesty pill */}
-        <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-slate-400 md:inline-flex">
+        <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-300 md:inline-flex">
           <span className="relative flex size-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
             <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />

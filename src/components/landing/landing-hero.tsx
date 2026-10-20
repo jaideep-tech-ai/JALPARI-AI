@@ -85,7 +85,7 @@ export function LandingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="jg-glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold tracking-wide text-emerald-300">
+          <div className="jg-glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide text-emerald-300">
             <span className="relative flex size-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
@@ -123,7 +123,7 @@ export function LandingHero() {
           <dl ref={statsRef} className="mt-10 grid max-w-md grid-cols-3 gap-3">
             {stats.map((s) => (
               <div key={s.label} className="jg-glass rounded-xl px-3 py-3">
-                <dt className="order-2 mt-1 block text-[11px] leading-tight text-slate-400">{s.label}</dt>
+                <dt className="order-2 mt-1 block text-xs leading-snug text-slate-300">{s.label}</dt>
                 <dd className="font-mono text-2xl font-bold tabular-nums text-white">{s.value}</dd>
               </div>
             ))}
@@ -131,8 +131,8 @@ export function LandingHero() {
 
           {/* city ticker */}
           <div className="mt-8 max-w-md overflow-hidden">
-            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              <Droplets className="size-3 text-[#38D9D6]" />
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300">
+              <Droplets className="size-3.5 text-[#38D9D6]" />
               {t('ticker')}
             </div>
             <div className="jg-marquee" aria-hidden>
@@ -140,7 +140,7 @@ export function LandingHero() {
                 {[0, 1].map((copy) => (
                   <div key={copy} className="flex shrink-0 items-center gap-6 pr-6">
                     {CITIES.map((c) => (
-                      <span key={`${copy}-${c}`} className="flex items-center gap-6 whitespace-nowrap text-[12.5px] font-medium text-slate-400">
+                      <span key={`${copy}-${c}`} className="flex items-center gap-6 whitespace-nowrap text-[13px] font-medium text-slate-300">
                         {c}
                         <span className="size-1 rounded-full bg-emerald-500/50" />
                       </span>
@@ -182,36 +182,36 @@ export function LandingHero() {
 
               {/* Rainfall panel */}
               <div className="jg-glass jg-float absolute left-3 top-3 z-[1100] w-40 rounded-xl p-3 shadow-lg">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  <Droplets className="size-3 text-sky-400" />
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
+                  <Droplets className="size-3.5 text-sky-400" />
                   {t('panelRain')}
                 </div>
-                <div className="mt-1 font-mono text-xl font-bold text-white">{rainNext48}<span className="text-xs font-normal text-slate-400"> mm</span></div>
+                <div className="mt-1 font-mono text-xl font-bold text-white">{rainNext48}<span className="text-xs font-normal text-slate-300"> mm</span></div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-[58%] rounded-full bg-gradient-to-r from-sky-400 to-emerald-400" />
                 </div>
-                <div className="mt-1.5 text-[9px] text-slate-500">Mumbai · demonstration figure</div>
+                <div className="mt-1.5 text-xs text-slate-300">Mumbai · demonstration figure</div>
               </div>
 
               {/* Recommendation preview */}
               {top && (
                 <div className="jg-glass jg-float-delay absolute bottom-3 right-3 z-[1100] w-56 rounded-xl p-3 shadow-lg">
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                    <Zap className="size-3 text-emerald-400" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-300">
+                    <Zap className="size-3.5 text-emerald-400" />
                     {t('panelRec')}
                   </div>
                   <div className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white">
                     {top.asset?.name ?? top.city}: inspect primary drains before forecast peak
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
-                    <span className="rounded bg-red-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-400">
+                    <span className="rounded bg-red-500/15 px-1.5 py-0.5 font-mono text-xs font-bold text-red-400">
                       {top.score}/100
                     </span>
                     <SourceChip status={top.isDemo ? 'SIMULATED' : 'LIVE'} />
                   </div>
                 </div>
               )}
-              <div className="absolute bottom-3 left-3 z-[1100] rounded-md border border-white/10 bg-[#0B1220]/90 px-2 py-1 text-[9px] font-medium text-slate-400 backdrop-blur">
+              <div className="absolute bottom-3 left-3 z-[1100] rounded-md border border-white/10 bg-[#0B1220]/90 px-2 py-1 text-xs font-medium text-slate-300 backdrop-blur">
                 {t('demoTag')} · © OpenStreetMap contributors
               </div>
             </div>
@@ -221,7 +221,7 @@ export function LandingHero() {
 
       {/* decorative scroll cue (purely decorative — aria-hidden) */}
       <div className="relative hidden justify-center pb-6 lg:flex" aria-hidden>
-        <div className="jg-float flex flex-col items-center gap-1 text-slate-500">
+        <div className="jg-float flex flex-col items-center gap-1 text-slate-400">
           <span className="h-8 w-px bg-gradient-to-b from-transparent via-emerald-400/60 to-transparent" />
           <ChevronDown className="size-4" />
         </div>
