@@ -258,3 +258,20 @@ model DataSource {
   notes         String?
   sortOrder     Int      @default(0)
 }
+
+model SosEvent {
+  id          String   @id @default(cuid())
+  phone       String
+  message     String
+  lat         Float?
+  lng         Float?
+  accuracy    Float?
+  placeLabel  String?
+  status      String   @default("SIMULATED") // SENT | SIMULATED | FAILED | DEMO_EXPIRED
+  provider    String   @default("twilio")
+  providerSid String?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}

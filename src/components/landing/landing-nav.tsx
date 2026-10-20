@@ -79,8 +79,8 @@ export function LandingNav() {
       className={cn(
         'fixed inset-x-0 top-0 z-[1300] border-b transition-all duration-300',
         scrolled
-          ? 'border-white/10 bg-[#0B1220]/85 shadow-lg shadow-black/25 backdrop-blur-xl'
-          : 'border-transparent bg-[#0B1220]/55 backdrop-blur-md',
+          ? 'border-white/[0.05] bg-[#050508]/70 shadow-lg shadow-black/30 backdrop-blur-[16px]'
+          : 'border-white/[0.05] bg-[rgba(5,5,8,0.4)] backdrop-blur-[16px]',
       )}
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 md:px-6">

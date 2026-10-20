@@ -421,3 +421,30 @@
 }
 
 /* nudge3 */
+
+/* --- SOS floating button pulse (auto-neutered by the global reduced-motion rule) --- */
+@keyframes jg-sos-ring {
+  0%   { transform: scale(1); opacity: 0.55; }
+  70%  { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.jg-sos-pulse {
+  animation: jg-sos-ring 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+/* --- Space journey (WebGL hero) utilities --- */
+.font-display {
+  font-family: var(--font-jg-display), var(--font-jg-sans), system-ui, sans-serif;
+}
+@keyframes jg-caret-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50%      { transform: translateY(5px); opacity: 0.45; }
+}
+.jg-caret-bounce { animation: jg-caret-bounce 1.8s ease-in-out infinite; }
+@keyframes jg-sos-sheen {
+  0%   { box-shadow: 0 0 18px rgba(0, 240, 255, 0.25), 0 0 0 rgba(0,240,255,0); }
+  50%  { box-shadow: 0 0 30px rgba(0, 240, 255, 0.45), 0 0 46px rgba(30,64,175,0.25); }
+  100% { box-shadow: 0 0 18px rgba(0, 240, 255, 0.25), 0 0 0 rgba(0,240,255,0); }
+}
+.jg-sos-glow { animation: jg-sos-sheen 3.2s ease-in-out infinite; }

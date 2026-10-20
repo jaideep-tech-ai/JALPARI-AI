@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useAppStore, roleCanSee } from '@/lib/store';
 import { api } from '@/lib/client-api';
 import { LandingNav } from '@/components/landing/landing-nav';
-import { LandingHero } from '@/components/landing/landing-hero';
+import { SpaceJourney } from '@/components/landing/space-journey';
+import { SosButton } from '@/components/landing/sos-button';
 import { LandingSections } from '@/components/landing/landing-sections';
 import {
   SignInScreen, SignUpScreen, ForgotScreen, ResetScreen,
@@ -125,8 +126,9 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <LandingNav />
-      <LandingHero />
+      <SpaceJourney />
       <LandingSections />
+      <SosButton />
     </div>
   );
 }

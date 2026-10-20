@@ -110,3 +110,25 @@ Work Log:
 
 Stage Summary:
 - Site fully functional; preview access must go through the platform Preview Panel, not constructed URLs
+
+---
+Task ID: 6
+Agent: main (Z.ai) — WebGL Earth hero + Twilio SOS
+Task: (1) SOS system with Twilio API (60-day demo), (2) premium 3D WebGL Earth hero landing per Creative Technologist spec
+
+Work Log:
+- Installed three@0.186, @react-three/fiber@9, drei@10, gsap@3.15, twilio@6
+- SOS backend: SosEvent prisma model + db push; lib/twilio.ts (demo window 60d from first use or TWILIO_DEMO_START, SIMULATED vs SENT honest split, Indian/+E.164 normalisation with 10-digit-first fix); /api/sos GET (status + redacted recent) POST (rate-limited 5/min, max 5 contacts, per-contact status, DEMO_EXPIRED guard)
+- SOS frontend: floating red pulse button (56px target) + dark glass dialog (geolocation capture w/ graceful denial fallback, area input, live SMS preview, contacts persisted to localStorage, per-contact result chips masked, days-left chip); i18n sos.* keys EN/HI; jg-sos-pulse keyframe (auto-neutered by reduced-motion)
+- 3D scene (earth-scene.tsx): custom ShaderMaterial Earth (day texture + derivative cotangent-frame normal mapping + night city-lights blend past terminator + ocean specular glint + fresnel rim), BackSide additive atmosphere halo (sun-biased), 1500-point procedural twinkling star shader, 23.5° axial tilt, slow idle spin, pointer parallax, scroll-driven camera (hero right → India-night zoom → left-corner shift), dpr clamp 1.75, Suspense fallback, reduced-motion freeze
+- Space journey (space-journey.tsx): 400vh sticky wrapper, GSAP ScrollTrigger scrub driving progress + overlay cross-fades; S1 hero text + stats, S2 floating glass pillar cards over zoomed night-side, S3 connectivity data panel right of cornered Earth; timeline padded to duration 1.0 (positions == scroll progress — fixed 0.84-duration mapping bug); SpaceJourney replaces LandingHero in page.tsx
+- Textures: four 2048px maps from three.js examples (jsdelivr) → public/textures/earth (~1.8MB)
+- Fonts: added Space_Grotesk (--font-jg-display) to layout; .font-display utility; nav glass restyled to spec rgba(5,5,8,.4)/blur16/border-white/5
+- Fixed during verification: GLSL vec2*vec3 error → cotangent-frame TBN rewrite; react-hooks/immutability + refs lint (targeted disables for R3F uniform pattern); sos route results typing; requestGeo ordering; Prisma client regen + dev restart for new model; phone normalisation (+876… bug → +91…)
+- Verified: /api/sos GET healthy (60d window ends 2026-12-19), POST sends SIMULATED events persisted to DB, browser SOS flow end-to-end (dispatched + masked results), desktop hero/S2/S3 screenshots, mobile 390px scrollWidth=390, full Hindi landing, eslint 0 errors, tsc clean, next build passes
+
+Stage Summary:
+- Landing is now a 3-section WebGL scroll narrative (cyber-minimalist: #050508, cyan #00f0ff/#1e40af accents, Space Grotesk + IBM Plex Mono)
+- SOS: Twilio-integrated, 60-day demo window enforced server-side, honest SIMULATED labelling, EN/HI
+- Screenshots: download/jg-3d-hero2.png, jg-3d-s2.png, jg-3d-s3f.png, jg-3d-mobile.png, jg-3d-hindi.png, jg-sos-sent2.png
+- Key files: src/components/landing/{earth-scene,space-journey,sos-button}.tsx, src/lib/{twilio,scroll-journey}.ts, src/app/api/sos/route.ts, prisma SosEvent
