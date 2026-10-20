@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -8,23 +8,53 @@ import { LanguageToggle, ThemeToggle } from '@/components/shared/controls';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Menu, LogOut, LayoutDashboard } from 'lucide-react';
 import { api } from '@/lib/client-api';
+import { cn } from '@/lib/utils';
+
+const SECTION_IDS = ['intro', 'intelligence', 'riskmap', 'solutions', 'workflow', 'responsible'] as const;
 
 export function LandingNav() {
   const t = useTranslations('nav');
   const tApp = useTranslations('app.nav');
+  const tCommon = useTranslations('common');
   const setView = useAppStore((s) => s.setView);
   const user = useAppStore((s) => s.user);
   const setUser = useAppStore((s) => s.setUser);
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
 
   const links = [
-    { label: t('platform'), href: '#intro' },
-    { label: t('intelligence'), href: '#intelligence' },
-    { label: t('riskMap'), href: '#riskmap' },
-    { label: t('solutions'), href: '#solutions' },
-    { label: t('howItWorks'), href: '#workflow' },
-    { label: t('about'), href: '#responsible' },
+    { id: 'intro', label: t('platform') },
+    { id: 'intelligence', label: t('intelligence') },
+    { id: 'riskmap', label: t('riskMap') },
+    { id: 'solutions', label: t('solutions') },
+    { id: 'workflow', label: t('howItWorks') },
+    { id: 'responsible', label: t('about') },
   ];
+
+  // Scroll-aware glass + scrollspy (only meaningful while on the landing view)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (useAppStore.getState().view !== 'landing') return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActive(visible[0].target.id);
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: [0.05, 0.25, 0.5] },
+    );
+    SECTION_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
 
   async function signOut() {
     await api('/api/auth', { body: { action: 'logout' } }).catch(() => {});
@@ -33,8 +63,9 @@ export function LandingNav() {
     window.location.hash = '';
   }
 
-  function go(hash: string) {
+  function go(id: string) {
     setOpen(false);
+    const hash = `#${id}`;
     if (useAppStore.getState().view !== 'landing') {
       setView('landing');
       setTimeout(() => document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' }), 120);
@@ -44,7 +75,14 @@ export function LandingNav() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-[1300] border-b border-white/5 bg-[#0B1220]/80 backdrop-blur-xl">
+    <header
+      className={cn(
+        'fixed inset-x-0 top-0 z-[1300] border-b transition-all duration-300',
+        scrolled
+          ? 'border-white/10 bg-[#0B1220]/85 shadow-lg shadow-black/25 backdrop-blur-xl'
+          : 'border-transparent bg-[#0B1220]/55 backdrop-blur-md',
+      )}
+    >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 md:px-6">
         <button
           className="flex items-center gap-2"
@@ -53,21 +91,39 @@ export function LandingNav() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
         >
-          { }
           <img src="/logo.svg" alt="JALGUARD logo" className="size-8" />
           <span className="text-lg font-extrabold tracking-tight text-white">
             JAL<span className="jg-gradient-text">GUARD</span>
           </span>
         </button>
 
-        <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Primary">
+        {/* Environment honesty pill */}
+        <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-widest text-slate-400 md:inline-flex">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
+          </span>
+          {tCommon('demo')}
+        </span>
+
+        <nav className="ml-4 hidden items-center gap-0.5 lg:flex" aria-label="Primary">
           {links.map((l) => (
             <button
-              key={l.href}
-              onClick={() => go(l.href)}
-              className="rounded-md px-3 py-1.5 text-[13px] font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+              key={l.id}
+              onClick={() => go(l.id)}
+              aria-current={active === l.id ? 'true' : undefined}
+              className={cn(
+                'relative rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
+                active === l.id ? 'text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white',
+              )}
             >
               {l.label}
+              <span
+                className={cn(
+                  'absolute inset-x-3 -bottom-[13px] h-[2px] rounded-full bg-gradient-to-r from-emerald-400 to-[#38D9D6] transition-opacity duration-300',
+                  active === l.id ? 'opacity-100' : 'opacity-0',
+                )}
+              />
             </button>
           ))}
         </nav>
@@ -83,7 +139,7 @@ export function LandingNav() {
             <>
               <Button
                 size="sm"
-                className="h-8 bg-emerald-500 text-[13px] font-semibold text-[#06251B] hover:bg-emerald-400"
+                className="jg-glow-btn h-8 bg-emerald-500 text-[13px] font-semibold text-[#06251B] hover:bg-emerald-400"
                 onClick={() => setView('app')}
               >
                 <LayoutDashboard className="size-3.5" />
@@ -110,7 +166,7 @@ export function LandingNav() {
               </Button>
               <Button
                 size="sm"
-                className="h-8 bg-emerald-500 text-[13px] font-semibold text-[#06251B] hover:bg-emerald-400"
+                className="jg-glow-btn h-8 bg-emerald-500 text-[13px] font-semibold text-[#06251B] hover:bg-emerald-400"
                 onClick={() => setView('signup')}
               >
                 {t('getStarted')}
@@ -130,9 +186,12 @@ export function LandingNav() {
               <nav className="mt-4 flex flex-col gap-1" aria-label="Mobile">
                 {links.map((l) => (
                   <button
-                    key={l.href}
-                    onClick={() => go(l.href)}
-                    className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 hover:bg-white/10"
+                    key={l.id}
+                    onClick={() => go(l.id)}
+                    className={cn(
+                      'rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-white/10',
+                      active === l.id ? 'bg-white/5 text-emerald-300' : 'text-slate-200',
+                    )}
                   >
                     {l.label}
                   </button>

@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/lib/store';
 import { Separator } from '@/components/ui/separator';
+import { SourceChip } from '@/components/shared/widgets';
+import { ShieldCheck } from 'lucide-react';
 
 export function LandingFooter() {
   const t = useTranslations('landing');
@@ -40,14 +42,21 @@ export function LandingFooter() {
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2">
-              { }
               <img src="/logo.svg" alt="JALGUARD logo" className="size-8" />
               <span className="text-lg font-extrabold tracking-tight text-white">
                 JAL<span className="jg-gradient-text">GUARD</span>
               </span>
             </div>
             <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-slate-400">{t('footerTagline')}</p>
-            <p className="mt-4 text-[11px] leading-relaxed text-slate-500">{t('footerAttribution')}</p>
+            {/* honest status row */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <SourceChip status="LIVE" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300" />
+              <SourceChip status="SIMULATED" className="border-violet-500/30 bg-violet-500/10 text-violet-300" />
+            </div>
+            <div className="mt-4 flex items-center gap-1.5 text-[11px] leading-relaxed text-slate-500">
+              <ShieldCheck className="size-3.5 shrink-0 text-emerald-500/70" />
+              {t('footerAttribution')}
+            </div>
           </div>
           {cols.map((c) => (
             <div key={c.title}>

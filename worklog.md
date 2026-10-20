@@ -38,3 +38,29 @@ Stage Summary:
 - Deliverable: runnable JALGUARD preview at / (SPA views) + 14 API routes + Prisma/SQLite persistence + seeded demo data
 - Known limitations (documented in README): SQLite demo persistence (Supabase/Postgres recommended for prod), email delivery replaced by labelled demo verification/reset steps, risk engine is transparent rules (not validated model), OSM tiles carry usage-policy notice
 - Key files: src/app/page.tsx (SPA router), src/lib/*, src/app/api/*, src/components/{landing,map,auth,app,dashboard,shared}/*, prisma/schema.prisma, scripts/seed.ts, .env.example, README.md
+
+---
+Task ID: 2
+Agent: main (Z.ai) — UI Designer pass
+Task: Premium landing page redesign ("sab landing page acha bana ke do")
+
+Work Log:
+- Added 15+ premium CSS utilities to globals.css: animated jg-aurora backdrop, jg-orb floating orbs, jg-noise texture, jg-glass panels, jg-glow-btn (glow + shine sweep), jg-map-frame (gradient border + breathing glow), jg-scan sweep line, jg-marquee ticker, jg-spot mouse-tracked spotlight, jg-corners brackets, jg-caret terminal cursor, jg-hairline, jg-step-num; all neutered by existing prefers-reduced-motion rule
+- Rewrote landing-nav.tsx: scroll-aware glass header (transparent -> blurred+shadow), IntersectionObserver scrollspy with gradient underline on active section, DEMO honesty pill with ping dot, jg-glow-btn CTAs, translated menu accessible mobile sheet
+- Rewrote landing-hero.tsx: aurora + orbs + noise + grid atmosphere, glass badge with pulsing dot, larger gradient headline with glow drop-shadow, rAF count-up stats hook (reduced-motion safe, lint-clean), 12-city marquee ticker (EN/HI label), map in jg-map-frame with scan sweep, floating glass rainfall + recommendation panels (jg-float), decorative scroll cue
+- Rewrote landing-sections.tsx: numbered section kickers (01-10), SpotlightCard (mouse-tracked radial glow), i18n-driven pillar cards (new keys), framed map preview with corner brackets, numbered problem cards with accent bars, navy workflow loop with per-step icons + hairline connector + loop-back badge, SVG circular risk gauge (animated stroke) + animated factor bars, intervention card with icon rows + human-approval banner (reuses app.interventions.humanNote), bento solutions grid (municipal feature card with decorative mini dashboard mock), mac-style terminal window with syntax-colored JSON receipt + blinking caret, contact info tiles, final CTA in glowing jg-map-frame
+- Enhanced landing-footer.tsx: LIVE + SIMULATED SourceChip status row, shield icon attribution
+- i18n: added keys to en.ts + hi.ts (hero.ticker, landing.pillar1-3Big/Small, contact tile labels/values)
+- Fixed mobile horizontal overflow: marquee's width:max-content inflated grid track to 448px; fixed via overflow-hidden on wrapper (contain:inline-size was stripped by Lightning CSS)
+- Fixed React hooks violation (useReducedMotion inside JSX/map callbacks -> single top-level call) and wrong field-team icon
+
+Verification (Agent Browser):
+- Desktop 1280px: hero, scrollspy (Platform/Risk Map/Intelligence/How It Works/About underlines tracked), ticker marquee, gauge, workflow, bento, terminal, FAQ, contact, glowing CTA, footer with LIVE/SIMULATED chips — all render, zero console errors
+- Hindi: full hero + nav + panels translate to Devanagari correctly
+- Mobile 390px: no horizontal overflow (scrollWidth = 390), badge wraps, stats fit, sections stack cleanly
+- Light + dark themes verified; lint 0 errors 0 warnings
+
+Stage Summary:
+- Landing page is now a premium, animated, accessible (reduced-motion safe) marketing surface in both languages
+- Screenshots: download/jg-hero-v2.png, jg-v2-*.png series
+- Key files: src/app/globals.css, src/components/landing/{landing-nav,landing-hero,landing-sections,landing-footer}.tsx, src/lib/i18n/{en,hi}.ts
