@@ -1,11 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <defs>
-    <linearGradient id="jgG" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#10B981"/>
-      <stop offset="1" stop-color="#38D9D6"/>
+    <linearGradient id="jgA" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00F2FE"/>
+      <stop offset=".55" stop-color="#08D9C9"/>
+      <stop offset="1" stop-color="#059669"/>
     </linearGradient>
+    <linearGradient id="jgB" x1="32" y1="16" x2="32" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#00F2FE"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <radialGradient id="jgC" cx=".32" cy=".26" r=".9">
+      <stop offset="0" stop-color="#0E1626"/>
+      <stop offset="1" stop-color="#060A13"/>
+    </radialGradient>
   </defs>
-  <path d="M32 3 8 12v18c0 15.5 10.1 26 24 31 13.9-5 24-15.5 24-31V12L32 3Z" fill="#0B1220" stroke="url(#jgG)" stroke-width="3"/>
-  <path d="M32 15c0 0-11 11.6-11 19a11 11 0 0 0 22 0c0-7.4-11-19-11-19Z" fill="url(#jgG)"/>
-  <path d="M26 34a6.2 6.2 0 0 0 6 6.3" stroke="#0B1220" stroke-width="2.4" stroke-linecap="round" opacity="0.65"/>
+  <rect width="64" height="64" rx="15" fill="url(#jgC)"/>
+  <rect x=".5" y=".5" width="63" height="63" rx="14.5" stroke="rgba(255,255,255,.09)"/>
+  <path d="M32 7.5 51 15.4v14.2c0 12.5-7.6 20.6-19 26.9C20.6 50.2 13 42.1 13 29.6V15.4L32 7.5Z" stroke="url(#jgA)" stroke-width="2.6" stroke-linejoin="round"/>
+  <path d="M32 16.5c2.9 4.6 11.5 13.4 11.5 20.2a11.5 11.5 0 0 1-23 0c0-6.8 8.6-15.6 11.5-20.2Z" fill="url(#jgB)" opacity=".92"/>
+  <path d="M21.5 36.2c3.2-2.4 5.8-2.4 8.4 0s5.8 2.4 8.4 0 4.2-2.2 4.9-1.6" stroke="#060A13" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  <circle cx="32" cy="27.5" r="2" fill="#F2FDFF" opacity=".9"/>
 </svg>

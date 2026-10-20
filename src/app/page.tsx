@@ -14,6 +14,8 @@ import {
 } from '@/components/auth/auth-screens';
 import { AppShell } from '@/components/app/app-shell';
 import { DashboardPage } from '@/components/dashboard/dashboards';
+import { BentoDashboard } from '@/components/dashboard/bento-dashboard';
+import { RolePortal } from '@/components/dashboard/role-portal';
 import { MapView } from '@/components/map/map-view';
 import { IncidentsView } from '@/components/app/incidents-view';
 import { InterventionsView } from '@/components/app/interventions-view';
@@ -102,7 +104,9 @@ export default function Home() {
     const page = roleCanSee(user.role, appPage) ? appPage : 'dashboard';
     return (
       <AppShell>
+        {page === 'portal' && <RolePortal />}
         {page === 'dashboard' && <DashboardPage />}
+        {page === 'bento' && <BentoDashboard />}
         {page === 'map' && (
           <div className="space-y-4">
             <h1 className="text-lg font-bold">{tMap('title')}</h1>

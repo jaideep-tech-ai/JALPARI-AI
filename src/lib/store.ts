@@ -17,7 +17,9 @@ export type View =
   | 'app';
 
 export type AppPage =
+  | 'portal'
   | 'dashboard'
+  | 'bento'
   | 'map'
   | 'incidents'
   | 'interventions'
@@ -93,7 +95,9 @@ export function roleCanSee(
 ): boolean {
   if (!role) return page === 'map';
   switch (page) {
+    case 'portal':
     case 'dashboard':
+    case 'bento':
     case 'map':
     case 'settings':
     case 'help':

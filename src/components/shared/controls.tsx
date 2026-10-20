@@ -50,7 +50,13 @@ export function ThemeToggle({ className }: { className?: string }) {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      onClick={() => {
+        // 400ms fluid morph — color-only properties transition, no flash
+        const el = document.documentElement;
+        el.classList.add('hc-theme-anim');
+        window.setTimeout(() => el.classList.remove('hc-theme-anim'), 460);
+        setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+      }}
       className={cn('size-8', className)}
       aria-label={t('theme')}
     >

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
+import { HydroStage } from '@/components/auth/hydro-stage';
 import { useAppStore } from '@/lib/store';
 import { api } from '@/lib/client-api';
 import { Button } from '@/components/ui/button';
@@ -24,11 +25,10 @@ import {
 function AuthShell({ children, title, sub }: { children: React.ReactNode; title: string; sub?: string }) {
   const setView = useAppStore((s) => s.setView);
   return (
-    <div className="jg-hero-bg flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <button className="mb-6 flex items-center gap-2" onClick={() => setView('landing')}>
-        { }
-        <img src="/logo.svg" alt="JALGUARD" className="size-9" />
-        <span className="text-xl font-extrabold tracking-tight text-white">
+    <div className="dark jg-hero-bg flex min-h-screen flex-col items-center justify-center px-4 py-10">
+      <button className="mb-6 flex items-center gap-2.5" onClick={() => setView('landing')}>
+        <img src="/logo.svg" alt="JALGUARD" className="size-10 drop-shadow-[0_0_14px_rgba(0,242,254,0.45)]" />
+        <span className="text-xl font-extrabold tracking-[0.08em] text-white">
           JAL<span className="jg-gradient-text">GUARD</span>
         </span>
       </button>
@@ -38,7 +38,7 @@ function AuthShell({ children, title, sub }: { children: React.ReactNode; title:
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md"
       >
-        <Card className="border-white/10 bg-[#111C2E]/95 shadow-2xl shadow-black/40 backdrop-blur">
+        <Card className="hc-glass-console border-white/10 bg-[#0E1626]/90 shadow-2xl shadow-black/50">
           <CardContent className="p-6 md:p-7">
             <h1 className="text-xl font-bold text-white">{title}</h1>
             {sub && <p className="mt-1 text-[13px] leading-relaxed text-slate-400">{sub}</p>}
@@ -66,7 +66,7 @@ function SubmitBtn({ loading, children, disabled, onClick }: { loading: boolean;
       type={onClick ? 'button' : 'submit'}
       onClick={onClick}
       disabled={loading || disabled}
-      className="h-10 w-full bg-emerald-500 font-semibold text-[#06251B] hover:bg-emerald-400"
+      className="hc-cta h-11 w-full"
     >
       {loading && <Loader2 className="size-4 animate-spin" />}
       {children}
@@ -88,22 +88,23 @@ function PasswordField({
     : value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value) ? 3
     : value.length >= 8 ? 2 : value.length >= 4 ? 1 : 0;
   const labels = [t('pwdWeak'), t('pwdWeak'), t('pwdFair'), t('pwdGood'), t('pwdStrong')];
-  const colors = ['bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-sky-500', 'bg-emerald-500'];
+  const colors = ['bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-sky-500', 'bg-[#10D9A0]'];
   return (
     <div>
-      <div className="relative">
-        <Input
+      <div className="hc-field">
+        <input
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder=" "
           autoComplete={autoComplete}
-          className={inputCls + ' pr-10'}
+          className="hc-input pr-11"
         />
+        <label className="hc-label">{placeholder}</label>
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+          className="absolute right-3 top-[15px] text-slate-500 transition-colors hover:text-white"
           aria-label={show ? t('hidePassword') : t('showPassword')}
         >
           {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -116,9 +117,132 @@ function PasswordField({
               <span key={i} className={`h-1 w-8 rounded-full ${i <= strength ? colors[strength] : 'bg-white/10'}`} />
             ))}
           </div>
-          <span className="text-[11px] text-slate-400">{labels[strength]}</span>
+          <span className="text-[11px] text-slate-500">{labels[strength]}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============ Cinematic split-screen shell (Midnight Hydro-Core) ============
+const DEMO_ROLES = [
+  { email: 'admin@jalguard.demo', label: 'Super Admin', glow: '#A78BFA' },
+  { email: 'disaster@jalguard.demo', label: 'Disaster Mgmt', glow: '#FF4D5E' },
+  { email: 'analyst@jalguard.demo', label: 'Analyst', glow: '#00F2FE' },
+  { email: 'officer@jalguard.demo', label: 'Municipal', glow: '#10D9A0' },
+  { email: 'field@jalguard.demo', label: 'Field Ops', glow: '#FFB224' },
+  { email: 'citizen@jalguard.demo', label: 'Citizen', glow: '#4ADE80' },
+];
+
+/** Capsule input with floating label + Electric Cyan neon focus ring. */
+function HydroInput({
+  id, label, type = 'text', value, onChange, autoComplete, required,
+}: {
+  id: string; label: string; type?: string; value: string;
+  onChange: (v: string) => void; autoComplete?: string; required?: boolean;
+}) {
+  return (
+    <div className="hc-field">
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder=" "
+        required={required}
+        autoComplete={autoComplete}
+        className="hc-input"
+      />
+      <label htmlFor={id} className="hc-label">{label}</label>
+    </div>
+  );
+}
+
+/** Sign In / Create Account segmented switch — 500ms fluid morph pill. */
+function AuthTabs({ active }: { active: 'signin' | 'signup' }) {
+  const t = useTranslations('auth');
+  const setView = useAppStore((s) => s.setView);
+  const tabs = [
+    { key: 'signin' as const, label: t('signInCta') },
+    { key: 'signup' as const, label: t('signUpCta') },
+  ];
+  return (
+    <div className="relative grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1" role="tablist">
+      {tabs.map((tab) => {
+        const on = active === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => { if (!on) setView(tab.key); }}
+            className={`relative rounded-xl py-2.5 text-[13px] font-semibold transition-colors duration-500 ${on ? 'text-[#04121A]' : 'text-slate-400 hover:text-white'}`}
+          >
+            {on && (
+              <motion.span
+                layoutId="auth-tab-pill"
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#059669] shadow-[0_0_24px_rgba(0,242,254,0.35)]"
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 50/50 horizontal split: Spline-ready hydro stage | glassmorphic console. */
+function AuthSplit({ active, title, sub, children }: { active: 'signin' | 'signup'; title: string; sub: string; children: React.ReactNode }) {
+  const tn = useTranslations('nav');
+  const setView = useAppStore((s) => s.setView);
+  return (
+    <div className="dark relative flex min-h-screen bg-[#060A13] text-white">
+      {/* LEFT — interactive hydro stage */}
+      <HydroStage />
+
+      {/* RIGHT — premium glassmorphic console */}
+      <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto px-4 py-10 lg:w-1/2">
+        <div className="hc-mesh opacity-60 lg:hidden" />
+
+        <button
+          onClick={() => setView('landing')}
+          className="absolute right-5 top-5 z-20 text-[12px] text-slate-500 transition-colors hover:text-white"
+        >
+          ← {tn('platform')}
+        </button>
+
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 26, filter: 'blur(6px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          className="relative z-10 w-full max-w-[460px]"
+        >
+          <div className="hc-glass-console p-7 md:p-10">
+            <div className="flex items-center gap-3">
+              <img src="/logo.svg" alt="" className="size-11 drop-shadow-[0_0_16px_rgba(0,242,254,0.5)]" />
+              <div>
+                <div className="text-lg font-extrabold tracking-[0.08em]">
+                  JAL<span className="bg-gradient-to-r from-[#00F2FE] to-[#10D9A0] bg-clip-text text-transparent">GUARD</span>
+                </div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">Hydro Resilience OS</div>
+              </div>
+            </div>
+
+            <h1 className="mt-6 font-display text-[26px] font-bold leading-tight text-white">{title}</h1>
+            <p className="mt-1 text-[13px] leading-relaxed text-slate-400">{sub}</p>
+
+            <div className="mt-5">
+              <AuthTabs active={active} />
+            </div>
+
+            <div className="mt-6">{children}</div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -126,8 +250,7 @@ function PasswordField({
 // ============ Sign in ============
 export function SignInScreen() {
   const t = useTranslations('auth');
-  const tn = useTranslations('nav');
-  const { setView, setUser, setPending } = useAppStore();
+  const { setView, setUser, setAppPage, setPending } = useAppStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -139,6 +262,7 @@ export function SignInScreen() {
     if (!u.emailVerified) { setView('verify'); return; }
     if (u.role === null) { setView('roleSelect'); return; }
     if (!u.onboarded) { setView('onboarding'); return; }
+    setAppPage('portal'); // role-specific landing
     setView('app');
   }
 
@@ -161,81 +285,68 @@ export function SignInScreen() {
     }
   }
 
-  const demoAccounts = [
-    ['admin@jalguard.demo', 'Super Admin'],
-    ['officer@jalguard.demo', 'Municipal'],
-    ['disaster@jalguard.demo', 'Disaster Mgmt'],
-    ['field@jalguard.demo', 'Field Ops'],
-    ['analyst@jalguard.demo', 'Analyst'],
-    ['citizen@jalguard.demo', 'Citizen'],
-  ];
+  async function demoLogin(em: string) {
+    setLoading(true);
+    setErr('');
+    try {
+      await api('/api/auth', { body: { action: 'login', email: em, password: 'Demo#Pass1' } });
+      const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
+      setUser(session.user);
+      setAppPage('portal');
+      setView('app');
+    } catch (e2) {
+      setErr((e2 as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <AuthShell title={t('signInTitle')} sub={t('signInSub')}>
+    <AuthSplit active="signin" title={t('signInTitle')} sub={t('signInSub')}>
       <form onSubmit={submit} className="space-y-4">
         <ErrAlert msg={err} />
-        <div className="space-y-1.5">
-          <Label htmlFor="si-email" className="text-slate-300">{t('email')}</Label>
-          <Input id="si-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} autoComplete="email" />
-        </div>
+        <HydroInput id="si-email" label={t('email')} type="email" value={email} onChange={setEmail} autoComplete="email" required />
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="si-pwd" className="text-slate-300">{t('password')}</Label>
-            <button type="button" className="text-xs text-emerald-400 hover:underline" onClick={() => setView('forgot')}>
+            <Label htmlFor="si-pwd" className="text-[12.5px] text-slate-400">{t('password')}</Label>
+            <button type="button" className="text-xs font-medium text-[#00F2FE] hover:underline" onClick={() => setView('forgot')}>
               {t('forgot')}
             </button>
           </div>
-          <PasswordField value={password} onChange={setPassword} placeholder="••••••••" show={show} setShow={setShow} autoComplete="current-password" />
+          <PasswordField value={password} onChange={setPassword} placeholder={t('password')} show={show} setShow={setShow} autoComplete="current-password" />
         </div>
         <SubmitBtn loading={loading}>{t('signInCta')}</SubmitBtn>
-        <p className="text-center text-[13px] text-slate-400">
-          {t('noAccount')}{' '}
-          <button type="button" className="font-semibold text-emerald-400 hover:underline" onClick={() => setView('signup')}>
-            {t('createOne')}
-          </button>
-        </p>
       </form>
 
-      <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-3.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-          <Info className="size-3.5" />
-          {t('demoAccounts')}
+      {/* demo accounts quick-access matrix — role-semantic breathing glow */}
+      <div className="mt-6">
+        <div className="hc-divider mb-4" />
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            <Info className="size-3" />
+            {t('demoAccounts')}
+          </span>
+          <span className="font-mono text-[10.5px] text-slate-500">Demo#Pass1</span>
         </div>
-        <p className="mt-1 text-[11px] text-slate-500">{t('demoAccountsHint')} — password <span className="font-mono text-slate-300">Demo#Pass1</span></p>
-        <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-          {demoAccounts.map(([em, label]) => (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {DEMO_ROLES.map((r) => (
             <button
-              key={em}
+              key={r.email}
               type="button"
-              className="flex items-center justify-between rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-slate-300 transition-colors hover:border-emerald-500/40 hover:text-white"
-              onClick={async () => {
-                setLoading(true);
-                setErr('');
-                try {
-                  await api('/api/auth', { body: { action: 'login', email: em, password: 'Demo#Pass1' } });
-                  const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
-                  setUser(session.user);
-                  setView('app');
-                } catch (e2) {
-                  setErr((e2 as Error).message);
-                } finally {
-                  setLoading(false);
-                }
-              }}
+              disabled={loading}
+              style={{ ['--role-glow' as string]: r.glow }}
+              className="hc-role group flex items-center gap-2 rounded-xl px-2.5 py-2 text-left disabled:opacity-50"
+              onClick={() => demoLogin(r.email)}
             >
-              <span className="truncate font-medium">{label}</span>
-              <ArrowRight className="size-3 shrink-0 text-emerald-400" />
+              <span className="hc-role-dot" />
+              <span className="truncate text-[11.5px] font-medium text-slate-300 transition-colors duration-300 group-hover:text-white">{r.label}</span>
+              <ArrowRight className="ml-auto size-3 shrink-0 -translate-x-1 text-slate-600 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
             </button>
           ))}
         </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-slate-500">{t('demoAccountsHint')}</p>
       </div>
-
-      <p className="mt-4 text-center">
-        <button className="text-[12px] text-slate-500 hover:text-slate-300" onClick={() => setView('landing')}>
-          ← {tn('platform')}
-        </button>
-      </p>
-    </AuthShell>
+    </AuthSplit>
   );
 }
 
@@ -278,20 +389,14 @@ export function SignUpScreen() {
   }
 
   return (
-    <AuthShell title={t('signUpTitle')} sub={t('signUpSub')}>
+    <AuthSplit active="signup" title={t('signUpTitle')} sub={t('signUpSub')}>
       <form onSubmit={submit} className="space-y-4">
         <ErrAlert msg={err} />
-        <div className="space-y-1.5">
-          <Label htmlFor="su-name" className="text-slate-300">{t('fullName')}</Label>
-          <Input id="su-name" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} autoComplete="name" />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="su-email" className="text-slate-300">{t('email')}</Label>
-          <Input id="su-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} autoComplete="email" />
-        </div>
+        <HydroInput id="su-name" label={t('fullName')} value={name} onChange={setName} autoComplete="name" required />
+        <HydroInput id="su-email" label={t('email')} type="email" value={email} onChange={setEmail} autoComplete="email" required />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-slate-300">{t('preferredLanguage')}</Label>
+            <Label className="text-[12.5px] text-slate-400">{t('preferredLanguage')}</Label>
             <Select value={language} onValueChange={(v) => setLanguage(v as 'en' | 'hi')}>
               <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -300,32 +405,29 @@ export function SignUpScreen() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="su-org" className="text-slate-300">{t('organization')} <span className="text-slate-500">({t('optional')})</span></Label>
-            <Input id="su-org" value={organization} onChange={(e) => setOrganization(e.target.value)} className={inputCls} />
+          <div className="hc-field">
+            <input
+              id="su-org"
+              value={organization}
+              onChange={(e) => setOrganization(e.target.value)}
+              placeholder=" "
+              autoComplete="organization"
+              className="hc-input"
+            />
+            <label htmlFor="su-org" className="hc-label">
+              {t('organization')} · {t('optional')}
+            </label>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-slate-300">{t('password')}</Label>
-          <PasswordField value={password} onChange={setPassword} placeholder="8+ characters" show={show} setShow={setShow} autoComplete="new-password" />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-slate-300">{t('confirmPassword')}</Label>
-          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputCls} autoComplete="new-password" />
-        </div>
-        <label className="flex items-start gap-2.5 text-[13px] text-slate-300">
+        <PasswordField value={password} onChange={setPassword} placeholder={t('password')} show={show} setShow={setShow} autoComplete="new-password" />
+        <HydroInput id="su-confirm" label={t('confirmPassword')} type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" required />
+        <label className="flex items-start gap-2.5 text-[13px] text-slate-400">
           <Checkbox checked={terms} onCheckedChange={(v) => setTerms(v === true)} className="mt-0.5 border-white/30" />
           {t('terms')}
         </label>
         <SubmitBtn loading={loading}>{t('signUpCta')}</SubmitBtn>
-        <p className="text-center text-[13px] text-slate-400">
-          {t('haveAccount')}{' '}
-          <button type="button" className="font-semibold text-emerald-400 hover:underline" onClick={() => setView('signin')}>
-            {t('signInCta')}
-          </button>
-        </p>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }
 

@@ -22,12 +22,14 @@ import { SourceChip } from '@/components/shared/widgets';
 import {
   LayoutDashboard, Map as MapIcon, AlertTriangle, Lightbulb, HardHat, BarChart3,
   Users, Database, ScrollText, Settings, HelpCircle, ChevronLeft, Bell, Search,
-  LogOut, Menu, Droplets, Radio, CircleAlert,
+  LogOut, Menu, Droplets, Radio, CircleAlert, Sparkles, LayoutGrid,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/lib/types';
 
 const NAV: { section: 'citizen' | 'operations' | 'intelligence' | 'administration'; label: string; page: AppPage; icon: typeof LayoutDashboard }[] = [
+  { section: 'citizen', label: 'portal', page: 'portal', icon: Sparkles },
+  { section: 'citizen', label: 'bento', page: 'bento', icon: LayoutGrid },
   { section: 'citizen', label: 'dashboard', page: 'dashboard', icon: LayoutDashboard },
   { section: 'citizen', label: 'riskMap', page: 'map', icon: MapIcon },
   { section: 'citizen', label: 'incidents', page: 'incidents', icon: AlertTriangle },
