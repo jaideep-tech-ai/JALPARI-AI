@@ -180,3 +180,34 @@ Stage Summary:
 - Screenshots: download/login-fullscreen-check.png (desktop), download/login-mobile-check.png (mobile)
 - Parallax physics now respond across the WHOLE viewport (was frozen over the right half)
 - No changes to auth flows, tokens, i18n, SOS/Twilio, or Spline embed slots
+
+---
+Task ID: 9
+Agent: main (Z.ai)
+Task: User request — workspace "asa template chahiye" (Fixly Operations Center reference), template-feel removed, user-friendly, simple, same words as reference, new uploaded logo integrated, mobile responsive; plus fix the "Received NaN for the `children` attribute" console error
+
+Work Log:
+- Logo: recreated uploaded shield+drop logo as clean SVG (public/logo.svg — cyan stroke shield, navy gradient fill, blue drop with two wave lines); generated favicon set (favicon-32/icon-192/icon-512/apple-icon.png via cairosvg); layout.tsx icons updated; used across landing nav, app sidebar, loader
+- NaN fix (root cause class eliminated): new src/lib/format.ts — num/fixed/coords/pct/age/shortDateTime helpers, all NaN-null-undefined safe; patched legacy raw renders: incidents-view lat/lon (dialog + create form), map-view asset coords, widgets SeverityBadge score, client-api formatINR; role-portal count-up was already Number.isFinite-guarded; ALL new workspace code renders numbers exclusively through these helpers, so a NaN number can never be a React child again
+- AppShell rewritten (app-shell.tsx): Fixly-style sidebar — brand block (logo + JALGUARD + "Water Resilience Platform" tagline), grouped sections WORKSPACE (Overview) / OPERATIONS (Risk Map, Reports, Work Orders, Interventions) / MANAGEMENT (Analytics, Users & Roles, Data Sources, Audit Log), Settings + Help, bottom user card (avatar/initials + name + role + dropdown w/ demo badge, settings, sign out); mobile hamburger drawer with same content + close button; topbar: hamburger, logo (text hidden <430px), ⌘K search, region select (lg+), data-freshness chip (xl+), language, theme, notifications, mobile-only profile menu; Portal/Command Grid removed from nav (pages still routable; post-login now routes to dashboard via auth-screens routeUser + demoLogin setAppPage('dashboard'))
+- New Operations Center (dashboard/operations-center.tsx + ops-shared.tsx): PageHeader ("Operations Center" / "Here's what's happening in your city today." + LIVE chip + date chip + Re-run assessments + Recommendations), Needs Attention banner (amber, ACTION REQUIRED badge, "{n} items need action right now", cards: "{n} overdue — still within SLA"/Resolve now, "{n} unassigned high-priority"/Assign now, "{n} nearing due date"/Review now, filters to >0, green "All clear" state), 5 Fixly stat cards (OPEN ISSUES/OVERDUE/UNASSIGNED/CRITICAL ASSETS/ACTIVE WORK ORDERS — honest notes, no fabricated % trends), High-priority issues list (sev icon tiles, coords, priority+status chips, ages, "Showing n of m", detail dialog), Live map card (compact RiskMap + legend chips Open/In progress/Resolved), Recent reports (tabs All/Open/In progress/Resolved with counts, desktop table Issue/Category/Status/Priority/Reported/Age, mobile card list)
+- Role homes (dashboard/role-homes.tsx) in same language: CitizenHome (Welcome {name}, Report an issue promo + emerald CTA, 3 stats, Your reports, Public advisories, Safety guidance), FieldHome (Work Orders + Active/Awaiting/Verified + task cards), AdminHome (Administration + Users/Role requests/Sources healthy/App health + role-requests approve/reject + sources health); old dashboards.tsx deleted; page.tsx routes portal→DashboardPage
+- i18n: full app.ops namespace (~60 keys) in en.ts + hi.ts (Operations Center ↔ ऑपरेशन्स सेंटर, Needs Attention ↔ ध्यान देने की ज़रूरत, brandSub, stat labels, table columns, role-home strings)
+- Fixed all 5 pre-existing tsc errors: api/incidents category includes cast, incidents-view incident null guards (effect + submitUpdate), tasks-view task null guard in act(), interventions-view Button variant boolean, i18n/index getMessageFallback signature
+- Mobile overflow fix: OpsCard gets min-w-0 overflow-hidden (Leaflet/Recharts min-content bleed), topbar brand text hidden <430px; scrollWidth 390 = viewport ✓
+- Ops note: sandbox 4GB cgroup OOM-killed `next dev` (Turbopack per-route compiles + chrome); verification done via `next build` + standalone server (node .next/standalone/server.js with .next/static + public copied in) on :3000 — stable; dev server still works for small sessions but may OOM while compiling heavy routes
+
+Verification (agent-browser, production standalone):
+- Municipal: light + dark Operations Center (banner, stats, high-priority, live map, reports table) ✓; console 0 errors, no NaN
+- Citizen home ✓ (Welcome Priya, 12/10/2 stats, reports, advisories, safety); Field home ✓ (3/0/0 + task cards); Super-admin home ✓ (9 users, sources LIVE/SIMULATED/UNAVAILABLE chips)
+- Hindi: full ऑपरेशन्स सेंटर render (sidebar groups, banner, stats, chips) ✓
+- Modules in new shell: Risk Map, Reports (register), Work Orders, Interventions, Analytics — all clean, 0 errors
+- Mobile 390: no horizontal overflow, topbar fits, stats 2-col, reports as cards ✓
+- tsc clean (incl. all pre-existing errors fixed), eslint clean on all touched files, next build passes
+- Logged-out landing with WebGL Earth + new logo intact ✓
+
+Stage Summary:
+- Workspace is now a calm Fixly-style Operations Center (same words/layout as the reference), user-friendly and simple, fully mobile responsive, with the user's shield-drop logo live platform-wide (incl. favicon)
+- NaN children console error eliminated by construction (safe format helpers everywhere + patched legacy renders)
+- Key files: public/logo.svg + 4 PNG icons, src/lib/format.ts, src/components/app/app-shell.tsx, src/components/dashboard/{operations-center,ops-shared,role-homes}.tsx, src/components/auth/auth-screens.tsx (login routing), src/components/shared/widgets.tsx, src/lib/{client-api,i18n/en,i18n/hi}.ts, src/app/{page,layout}.tsx; deleted src/components/dashboard/dashboards.tsx
+- Screenshots: download/oc-{final-desktop,light-top,light-mid,light-bottom,mobile-top,mobile-bottom,citizen,field,admin,hindi}.png, mod-{Risk-Map,Reports,Work-Orders,Interventions,Analytics}.png, final-landing2.png

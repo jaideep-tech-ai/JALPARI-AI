@@ -37,7 +37,7 @@ export function OpsCard({ title, chip, action, children, className, bodyClassNam
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn('rounded-xl border border-border/70 bg-card shadow-sm', className)}>
+    <section className={cn('min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm', className)}>
       <header className="flex flex-wrap items-center justify-between gap-2 px-4 pb-1 pt-3.5">
         <div className="flex items-center gap-2">
           <h2 className="text-[14px] font-bold tracking-tight text-foreground">{title}</h2>

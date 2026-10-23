@@ -280,7 +280,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* mobile brand */}
             <button className="flex items-center gap-2 md:hidden" onClick={() => setAppPage('dashboard')}>
               <img src="/logo.svg" alt="JALGUARD" className="size-7" />
-              <span className="text-sm font-extrabold tracking-tight">JALGUARD</span>
+              <span className="hidden text-sm font-extrabold tracking-tight min-[430px]:inline">JALGUARD</span>
             </button>
 
             <Button
