@@ -73,6 +73,7 @@ export function TaskDetailDialog({ task, onClose, onChanged }: { task: Task | nu
   const isOp = ['municipal', 'disaster', 'super_admin'].includes(user?.role ?? '');
 
   async function act(action: string, extra?: Record<string, unknown>) {
+    if (!task) return;
     setBusy(true);
     try {
       await api('/api/tasks', { method: 'PATCH', body: { id: task.id, action, ...extra } });

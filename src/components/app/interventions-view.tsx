@@ -93,7 +93,7 @@ export function InterventionsView() {
         </div>
         <div className="flex gap-2">
           {['PENDING', 'CONVERTED', 'REJECTED', 'ALL'].map((s) => (
-            <Button key={s} size="sm" variant={s === 'ALL' ? showAll : !showAll && statusFilter === s ? 'secondary' : 'ghost'} className="h-8 text-xs" onClick={() => { if (s === 'ALL') setShowAll(true); else { setShowAll(false); setStatusFilter(s); } }}>
+            <Button key={s} size="sm" variant={s === 'ALL' ? (showAll ? 'default' : 'ghost') : !showAll && statusFilter === s ? 'secondary' : 'ghost'} className="h-8 text-xs" onClick={() => { if (s === 'ALL') setShowAll(true); else { setShowAll(false); setStatusFilter(s); } }}>
               {s === 'ALL' ? 'All' : tStatus(s as 'PENDING')}
             </Button>
           ))}

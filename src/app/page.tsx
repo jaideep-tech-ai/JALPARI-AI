@@ -13,7 +13,8 @@ import {
   VerifyScreen, RoleSelectScreen, OnboardingScreen, ChangePasswordGate,
 } from '@/components/auth/auth-screens';
 import { AppShell } from '@/components/app/app-shell';
-import { DashboardPage } from '@/components/dashboard/dashboards';
+import { DashboardPage } from '@/components/dashboard/operations-center';
+import { CitizenHome, FieldHome, AdminHome } from '@/components/dashboard/role-homes';
 import { BentoDashboard } from '@/components/dashboard/bento-dashboard';
 import { RolePortal } from '@/components/dashboard/role-portal';
 import { MapView } from '@/components/map/map-view';
@@ -104,7 +105,7 @@ export default function Home() {
     const page = roleCanSee(user.role, appPage) ? appPage : 'dashboard';
     return (
       <AppShell>
-        {page === 'portal' && <RolePortal />}
+        {page === 'portal' && <DashboardPage />}
         {page === 'dashboard' && <DashboardPage />}
         {page === 'bento' && <BentoDashboard />}
         {page === 'map' && (

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const lon = Number(b.lon);
     if (title.length < 4) throw new ApiError(400, 'Title must be at least 4 characters');
     if (description.length < 10) throw new ApiError(400, 'Description must be at least 10 characters');
-    if (!INCIDENT_CATEGORIES.includes(category)) throw new ApiError(400, 'Invalid category');
+    if (!(INCIDENT_CATEGORIES as readonly string[]).includes(category)) throw new ApiError(400, 'Invalid category');
     if (Number.isNaN(lat) || Number.isNaN(lon) || lat < 6 || lat > 37 || lon < 68 || lon > 98) {
       throw new ApiError(400, 'Pick a valid location within India');
     }

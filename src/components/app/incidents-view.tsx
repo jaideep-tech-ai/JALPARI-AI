@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { api, timeAgo } from '@/lib/client-api';
+import { coords } from '@/lib/format';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,7 +158,7 @@ export function IncidentCreateDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Location <span className="text-muted-foreground">({lat?.toFixed(4)}, {lon?.toFixed(4)})</span></Label>
+              <Label className="text-xs">Location <span className="text-muted-foreground">({coords(lat, lon)})</span></Label>
               <div className="h-52 overflow-hidden rounded-xl border">
                 <ClickableMiniMap
                   assessments={[]}
@@ -227,6 +228,7 @@ export function IncidentDetailDialog({ incident, onClose, onChanged }: { inciden
 
   async function submitUpdate(e: React.FormEvent) {
     e.preventDefault();
+    if (!incident) return;
     setBusy(true);
     try {
       await api('/api/incidents', {
@@ -260,7 +262,7 @@ export function IncidentDetailDialog({ incident, onClose, onChanged }: { inciden
           <div className="space-y-4 pb-2">
             <p className="text-[13px] leading-relaxed text-muted-foreground">{incident.description}</p>
             <div className="grid grid-cols-2 gap-2 text-[11.5px] text-muted-foreground">
-              <span className="flex items-center gap-1"><MapPin className="size-3" /> {incident.city} · {incident.lat.toFixed(3)}, {incident.lon.toFixed(3)}</span>
+              <span className="flex items-center gap-1"><MapPin className="size-3" /> {incident.city} · {coords(incident.lat, incident.lon)}</span>
               <span className="text-right">{t('reporter')}: {incident.reporter?.name ?? t('anonymous')}</span>
               <span>{timeAgo(incident.createdAt)}</span>
               {incident.hasPhoto && <span className="flex items-center justify-end gap-1 text-sky-500"><Camera className="size-3" /> photo attached</span>}

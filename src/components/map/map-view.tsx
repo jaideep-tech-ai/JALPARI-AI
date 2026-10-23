@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
 import { api, timeAgo } from '@/lib/client-api';
+import { coords } from '@/lib/format';
 import { useAppStore } from '@/lib/store';
 import { CITIES, SEVERITY_COLORS, type Severity, type RiskFactor } from '@/lib/types';
 import { SeverityBadge, SourceChip, StatusPill, DemoBanner } from '@/components/shared/widgets';
@@ -403,7 +404,7 @@ export function MapView({ authed, compactHeight }: { authed: boolean; compactHei
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <span>{tAsset(selected.asset.category)}</span>
-                    <span className="text-right font-mono">{selected.asset.lat.toFixed(3)}, {selected.asset.lon.toFixed(3)}</span>
+                    <span className="text-right font-mono">{coords(selected.asset.lat, selected.asset.lon)}</span>
                     <span>{t('confidence')}: {selected.assessment.confidence}%</span>
                     <span className="text-right">{tc('lastUpdated')}: {timeAgo(selected.assessment.createdAt)}</span>
                   </div>

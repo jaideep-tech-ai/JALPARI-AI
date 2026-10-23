@@ -15,11 +15,12 @@ const SEV_STYLES: Record<Severity, string> = {
 
 export function SeverityBadge({ severity, score, className }: { severity: Severity; score?: number; className?: string }) {
   const t = useTranslations('app.severity');
+  const safeScore = typeof score === 'number' && Number.isFinite(score) ? Math.round(score) : null;
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-wide', SEV_STYLES[severity], className)}>
       <span className="size-1.5 rounded-full bg-current" />
       {t(severity)}
-      {score !== undefined && <span className="font-mono opacity-80">· {score}</span>}
+      {safeScore !== null && <span className="font-mono opacity-80">· {safeScore}</span>}
     </span>
   );
 }

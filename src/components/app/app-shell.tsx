@@ -1,11 +1,19 @@
 'use client';
 
+/**
+ * APP SHELL — Fixly-style workspace chrome.
+ *
+ * Left sidebar: logo + product tagline, three calm section groups
+ * (WORKSPACE / OPERATIONS / MANAGEMENT), Settings + Help, and a bottom user
+ * card with the profile menu. Mobile: hamburger drawer with the same content.
+ * Topbar: search, region, data freshness, language, theme, notifications.
+ */
+
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAppStore, roleCanSee, type AppPage } from '@/lib/store';
 import { api, timeAgo } from '@/lib/client-api';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -21,30 +29,32 @@ import { LanguageToggle, ThemeToggle } from '@/components/shared/controls';
 import { SourceChip } from '@/components/shared/widgets';
 import {
   LayoutDashboard, Map as MapIcon, AlertTriangle, Lightbulb, HardHat, BarChart3,
-  Users, Database, ScrollText, Settings, HelpCircle, ChevronLeft, Bell, Search,
-  LogOut, Menu, Droplets, Radio, CircleAlert, Sparkles, LayoutGrid,
+  Users, Database, ScrollText, Settings, HelpCircle, Bell, Search,
+  LogOut, Menu, Droplets, Radio, CircleAlert, ChevronDown, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/lib/types';
 
-const NAV: { section: 'citizen' | 'operations' | 'intelligence' | 'administration'; label: string; page: AppPage; icon: typeof LayoutDashboard }[] = [
-  { section: 'citizen', label: 'portal', page: 'portal', icon: Sparkles },
-  { section: 'citizen', label: 'bento', page: 'bento', icon: LayoutGrid },
-  { section: 'citizen', label: 'dashboard', page: 'dashboard', icon: LayoutDashboard },
-  { section: 'citizen', label: 'riskMap', page: 'map', icon: MapIcon },
-  { section: 'citizen', label: 'incidents', page: 'incidents', icon: AlertTriangle },
-  { section: 'operations', label: 'tasks', page: 'tasks', icon: HardHat },
+type NavSection = 'workspace' | 'operations' | 'management';
+const NAV: { section: NavSection; label: string; page: AppPage; icon: typeof LayoutDashboard }[] = [
+  { section: 'workspace', label: 'overview', page: 'dashboard', icon: LayoutDashboard },
+  { section: 'operations', label: 'riskMap', page: 'map', icon: MapIcon },
+  { section: 'operations', label: 'reports', page: 'incidents', icon: AlertTriangle },
+  { section: 'operations', label: 'workOrders', page: 'tasks', icon: HardHat },
   { section: 'operations', label: 'interventions', page: 'interventions', icon: Lightbulb },
-  { section: 'intelligence', label: 'analytics', page: 'analytics', icon: BarChart3 },
-  { section: 'administration', label: 'adminUsers', page: 'adminUsers', icon: Users },
-  { section: 'administration', label: 'dataSources', page: 'dataSources', icon: Database },
-  { section: 'administration', label: 'audit', page: 'audit', icon: ScrollText },
+  { section: 'management', label: 'analytics', page: 'analytics', icon: BarChart3 },
+  { section: 'management', label: 'adminUsers', page: 'adminUsers', icon: Users },
+  { section: 'management', label: 'dataSources', page: 'dataSources', icon: Database },
+  { section: 'management', label: 'audit', page: 'audit', icon: ScrollText },
 ];
+
+const SECTION_KEY: Record<NavSection, string> = { workspace: 'groupWorkspace', operations: 'groupOperations', management: 'groupManagement' };
 
 interface Notification { id: string; title: string; body: string; type: string; read: boolean; createdAt: string }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations('app.nav');
+  const to = useTranslations('app.ops');
   const ts = useTranslations('app.shell');
   const tCommon = useTranslations('nav');
   const { user, appPage, setAppPage, setView, setUser, sidebarOpen, toggleSidebar, region, setRegion } = useAppStore();
@@ -91,84 +101,142 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setView('landing');
   }
 
-  const sections: AppPage[][] = ['citizen', 'operations', 'intelligence', 'administration'].map(
-    (sec) => visibleNav.filter((n) => n.section === sec).map((n) => n.page)
-  );
-  const sectionMeta: Record<string, { label: string }> = {
-    citizen: { label: t('citizenZone') },
-    operations: { label: t('operations') },
-    intelligence: { label: t('intelligence') },
-    administration: { label: t('administration') },
-  };
+  const sections: NavSection[] = ['workspace', 'operations', 'management'];
   const navByPage = Object.fromEntries(NAV.map((n) => [n.page, n])) as Record<AppPage, (typeof NAV)[number]>;
 
-  function NavButton({ page }: { page: AppPage }) {
+  const roleLabel = (r: string | null | undefined) => {
+    if (!r) return '—';
+    const map: Record<string, string> = {
+      citizen: 'Citizen', municipal: 'Municipal Officer', disaster: 'Disaster Management',
+      field: 'Field Operations', infra: 'Infrastructure', analyst: 'Data Analyst',
+      org_admin: 'Administrator', super_admin: 'Super Admin',
+    };
+    return map[r] ?? r;
+  };
+
+  function NavButton({ page, onNavigate }: { page: AppPage; onNavigate?: () => void }) {
     const n = navByPage[page];
     if (!n) return null;
     const Icon = n.icon;
+    const active = appPage === page;
     return (
       <button
-        onClick={() => { setAppPage(page); setMobileNavOpen(false); }}
+        onClick={() => { setAppPage(page); onNavigate?.(); }}
         className={cn(
           'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
-          appPage === page
-            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
+          active
+            ? 'bg-sky-500/10 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         )}
-        aria-current={appPage === page ? 'page' : undefined}
+        aria-current={active ? 'page' : undefined}
       >
-        <Icon className="size-4 shrink-0" />
-        <span className="truncate">{t(n.label as 'dashboard')}</span>
+        <Icon className={cn('size-4 shrink-0', active && 'text-sky-600 dark:text-sky-400')} />
+        <span className="truncate">{n.label === 'overview' ? to('overview') : n.label === 'reports' ? to('reports') : n.label === 'workOrders' ? to('workOrders') : t(n.label as 'dashboard')}</span>
       </button>
     );
   }
 
-  function sidebarContent() {
+  function userCard() {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
+            <Avatar className="size-9">
+              <AvatarFallback className="bg-sky-600 text-[11px] font-bold text-white">
+                {(user?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('')}
+              </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-semibold text-foreground">{user?.name}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">{roleLabel(user?.role)}</span>
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" side="top" className="w-60">
+          <DropdownMenuLabel>
+            <div className="text-[13px] font-semibold">{user?.name}</div>
+            <div className="truncate text-[11px] font-normal text-muted-foreground">{user?.email}</div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1">
+              {user?.isDemo && <Badge variant="outline" className="border-violet-500/40 text-[9px] text-violet-500">DEMO ACCOUNT</Badge>}
+              <Badge variant="outline" className="text-[9px] capitalize">{roleLabel(user?.role)}</Badge>
+              {user?.roleStatus === 'PENDING' && (
+                <Badge variant="outline" className="border-amber-500/40 text-[9px] text-amber-500">{ts('roleBadgePending')}</Badge>
+              )}
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setAppPage('settings')}>
+            <Settings className="size-3.5" /> {t('settings')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setAppPage('help')}>
+            <HelpCircle className="size-3.5" /> {t('help')}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={signOut} className="text-red-500 focus:text-red-500">
+            <LogOut className="size-3.5" /> {tCommon('signOut')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  function sidebarContent(onNavigate?: () => void) {
     return (
       <div className="flex h-full flex-col">
+        {/* brand */}
         <button
-          className="flex items-center gap-2 px-4 py-4"
+          className="flex items-center gap-2.5 px-4 pb-2 pt-4 text-left"
           onClick={() => { setView('landing'); setAppPage('dashboard'); }}
         >
-          { }
           <img src="/logo.svg" alt="JALGUARD" className="size-8 shrink-0" />
-          <span className="text-base font-extrabold tracking-tight">
-            JAL<span className="jg-gradient-text">GUARD</span>
+          <span className="min-w-0">
+            <span className="block text-[15px] font-extrabold leading-tight tracking-tight text-foreground">
+              JALGUARD
+            </span>
+            <span className="block truncate text-[10.5px] leading-tight text-muted-foreground">{to('brandSub')}</span>
           </span>
         </button>
-        <ScrollArea className="flex-1 px-3 pb-4">
-          {sections.map((pages, si) =>
-            pages.length > 0 ? (
-              <div key={si} className="mb-1">
-                <div className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
-                  {Object.values(sectionMeta)[si].label}
+
+        <ScrollArea className="flex-1 px-3 pb-3">
+          {sections.map((sec) => {
+            const pages = visibleNav.filter((n) => n.section === sec).map((n) => n.page);
+            if (pages.length === 0) return null;
+            return (
+              <div key={sec} className="mb-2">
+                <div className="px-3 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {to(SECTION_KEY[sec] as 'groupWorkspace')}
                 </div>
-                {pages.map((p) => <NavButton key={p} page={p} />)}
+                <div className="space-y-0.5">
+                  {pages.map((p) => <NavButton key={p} page={p} onNavigate={onNavigate} />)}
+                </div>
               </div>
-            ) : null
-          )}
+            );
+          })}
         </ScrollArea>
+
         <Separator />
-        <div className="p-3">
+        <div className="space-y-0.5 p-3 pb-1.5">
           <button
-            onClick={() => setAppPage('settings')}
+            onClick={() => { setAppPage('settings'); onNavigate?.(); }}
             className={cn(
               'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium',
-              appPage === 'settings' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground hover:bg-accent'
+              appPage === 'settings' ? 'bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:bg-accent'
             )}
           >
             <Settings className="size-4" /> {t('settings')}
           </button>
           <button
-            onClick={() => setAppPage('help')}
+            onClick={() => { setAppPage('help'); onNavigate?.(); }}
             className={cn(
               'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium',
-              appPage === 'help' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' : 'text-muted-foreground hover:bg-accent'
+              appPage === 'help' ? 'bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:bg-accent'
             )}
           >
             <HelpCircle className="size-4" /> {t('help')}
           </button>
         </div>
+        <div className="border-t border-border/60 p-2">{userCard()}</div>
       </div>
     );
   }
@@ -178,34 +246,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-all duration-300 md:block',
+          'sticky top-0 hidden h-screen shrink-0 border-r border-border/70 bg-sidebar transition-all duration-300 md:block',
           sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
         )}
       >
         {sidebarContent()}
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile drawer */}
       {mobileNavOpen && (
         <div className="fixed inset-0 z-[1400] md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-64 border-r bg-sidebar">
-            {sidebarContent()}
+          <aside className="absolute left-0 top-0 h-full w-72 border-r border-border/70 bg-sidebar shadow-xl">
+            <button
+              className="absolute right-3 top-4 flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close navigation"
+            >
+              <X className="size-4" />
+            </button>
+            {sidebarContent(() => setMobileNavOpen(false))}
           </aside>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-[1200] border-b bg-background/85 backdrop-blur">
+        <header className="sticky top-0 z-[1200] border-b border-border/70 bg-background/85 backdrop-blur">
           <div className="flex h-14 items-center gap-2 px-3 md:px-5">
-            <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => (window.innerWidth < 768 ? setMobileNavOpen(true) : toggleSidebar())} aria-label="Toggle navigation">
+            <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
               <Menu className="size-4.5" />
             </Button>
+            {/* mobile brand */}
+            <button className="flex items-center gap-2 md:hidden" onClick={() => setAppPage('dashboard')}>
+              <img src="/logo.svg" alt="JALGUARD" className="size-7" />
+              <span className="text-sm font-extrabold tracking-tight">JALGUARD</span>
+            </button>
+
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-9 justify-start gap-2 px-2 text-muted-foreground md:w-64"
+              className="ml-1 h-8 w-9 justify-start gap-2 px-2 text-muted-foreground md:ml-0 md:w-64"
               onClick={() => setSearchOpen(true)}
             >
               <Search className="size-3.5" />
@@ -277,42 +358,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Profile */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="ml-0.5 flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Profile menu">
-                    <Avatar className="size-8">
-                      <AvatarFallback className="bg-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
-                        {(user?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuLabel>
-                    <div className="text-[13px] font-semibold">{user?.name}</div>
-                    <div className="truncate text-[11px] font-normal text-muted-foreground">{user?.email}</div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                      {user?.isDemo && <Badge variant="outline" className="border-violet-500/40 text-[9px] text-violet-500">DEMO ACCOUNT</Badge>}
-                      <Badge variant="outline" className="text-[9px] capitalize">{user?.role ?? 'guest'}</Badge>
-                      {user?.roleStatus === 'PENDING' && (
-                        <Badge variant="outline" className="border-amber-500/40 text-[9px] text-amber-500">{ts('roleBadgePending')}</Badge>
-                      )}
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setAppPage('settings')}>
-                    <Settings className="size-3.5" /> {t('settings')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setAppPage('help')}>
-                    <HelpCircle className="size-3.5" /> {t('help')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="text-red-500 focus:text-red-500">
-                    <LogOut className="size-3.5" /> {tCommon('signOut')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Mobile-only profile shortcut */}
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Profile menu">
+                      <Avatar className="size-8">
+                        <AvatarFallback className="bg-sky-600 text-[10px] font-bold text-white">
+                          {(user?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="text-[13px] font-semibold">{user?.name}</div>
+                      <div className="truncate text-[11px] font-normal text-muted-foreground">{roleLabel(user?.role)}</div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setAppPage('settings')}>
+                      <Settings className="size-3.5" /> {t('settings')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={signOut} className="text-red-500 focus:text-red-500">
+                      <LogOut className="size-3.5" /> {tCommon('signOut')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </header>

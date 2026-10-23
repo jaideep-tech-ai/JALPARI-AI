@@ -16,7 +16,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       locale={locale}
       messages={messages}
       onError={() => {}}
-      getMessageFallback={(_ns, key) => key}
+      getMessageFallback={(info) => String(info.key)}
       timeZone="Asia/Kolkata"
     >
       {children}

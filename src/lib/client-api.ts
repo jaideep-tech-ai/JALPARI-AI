@@ -34,7 +34,7 @@ export function timeAgo(dateStr: string | Date | null | undefined): string {
 }
 
 export function formatINR(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—';
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
   if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
   return `₹${n.toLocaleString('en-IN')}`;
 }

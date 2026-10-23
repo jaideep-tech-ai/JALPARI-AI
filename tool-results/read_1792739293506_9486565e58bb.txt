@@ -1,0 +1,544 @@
+     1→'use client';
+     2→
+     3→/**
+     4→ * BENTO DASHBOARD — role-adaptive 3D bento-grid system.
+     5→ *
+     6→ * - Master control switch morphs the widget field between
+     7→ *   Citizen / Responder / Administrator views (600ms fluid curve).
+     8→ * - Left: interactive 3D hydro-terrain viewport (drag to orbit) with a
+     9→ *   liquid water grid that rises and shifts cyan → warning red as risk
+    10→ *   intensifies. `<spline-viewer>` slot overlays it when a scene URL is set.
+    11→ * - Every widget card uses the strict Hydro-Core glass token:
+    12→ *   rgba(14,22,38,.55) · blur 20 · border 7% · radius 20.
+    13→ */
+    14→
+    15→import { useEffect, useMemo, useRef, useState } from 'react';
+    16→import { useTranslations } from 'next-intl';
+    17→import { motion, AnimatePresence } from 'framer-motion';
+    18→import { api, timeAgo } from '@/lib/client-api';
+    19→import { useAppStore } from '@/lib/store';
+    20→import { cn } from '@/lib/utils';
+    21→import { SourceChip } from '@/components/shared/widgets';
+    22→import { IncidentCreateDialog, type Incident } from '@/components/app/incidents-view';
+    23→import type { Task } from '@/components/app/tasks-view';
+    24→import {
+    25→  Users, Siren, Building2, Droplets, Radio, ShieldAlert, Radar, MapPin, BatteryMedium,
+    26→  Navigation, Waves, Wind, Gauge, Droplet, TrendingUp, ChevronRight, Move3d, PhoneCall, Megaphone,
+    27→} from 'lucide-react';
+    28→import {
+    29→  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid,
+    30→} from 'recharts';
+    31→
+    32→interface Analytics {
+    33→  totals: { incidents: number; openIncidents: number; assessments: number; pendingRecs: number; activeTasks: number; critical: number };
+    34→  trend: { date: string; score: number }[];
+    35→}
+    36→
+    37→type BentoView = 'citizen' | 'responder' | 'admin';
+    38→
+    39→const STATUS_TAG: Record<string, string> = {
+    40→  OPEN: '#00F2FE',
+    41→  ACKNOWLEDGED: '#A78BFA',
+    42→  IN_PROGRESS: '#FFB224',
+    43→  ASSIGNED: '#FFB224',
+    44→  SUBMITTED: '#4CC3FF',
+    45→  RESOLVED: '#10D9A0',
+    46→  VERIFIED: '#10D9A0',
+    47→};
+    48→
+    49→function tagColor(status: string): string {
+    50→  return STATUS_TAG[(status || '').toUpperCase()] ?? '#00F2FE';
+    51→}
+    52→
+    53→/** deterministic pseudo-telemetry from an id (demo-labelled chips) */
+    54→function hashNum(id: string, min: number, max: number): number {
+    55→  let h = 0;
+    56→  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+    57→  const n = Math.abs(h) % 100;
+    58→  return min + Math.round((n / 100) * (max - min));
+    59→}
+    60→
+    61→// ============ 3D HYDRO TERRAIN VIEWPORT ============
+    62→function HydroTerrain({ critical, rainMm }: { critical: number; rainMm: number }) {
+    63→  const t = useTranslations('bento');
+    64→  const planeRef = useRef<HTMLDivElement>(null);
+    65→  const drag = useRef<{ on: boolean; x: number; y: number; rx: number; rz: number }>({ on: false, x: 0, y: 0, rx: 56, rz: -18 });
+    66→  const [rot, setRot] = useState({ rx: 56, rz: -18 });
+    67→  const [intensity, setIntensity] = useState(30);
+    68→
+    69→  // derive initial intensity from live data
+    70→  useEffect(() => {
+    71→    setIntensity(Math.min(96, Math.round(critical * 11 + rainMm * 0.5 + 18)));
+    72→  }, [critical, rainMm]);
+    73→
+    74→  useEffect(() => {
+    75→    const el = planeRef.current?.parentElement; // scene container
+    76→    if (!el) return;
+    77→    const down = (e: PointerEvent) => {
+    78→      drag.current = { on: true, x: e.clientX, y: e.clientY, rx: rot.rx, rz: rot.rz };
+    79→      el.setPointerCapture(e.pointerId);
+    80→    };
+    81→    const move = (e: PointerEvent) => {
+    82→      if (!drag.current.on) return;
+    83→      const dx = e.clientX - drag.current.x;
+    84→      const dy = e.clientY - drag.current.y;
+    85→      setRot({
+    86→        rx: Math.max(26, Math.min(78, drag.current.rx - dy * 0.22)),
+    87→        rz: Math.max(-48, Math.min(48, drag.current.rz + dx * 0.22)),
+    88→      });
+    89→    };
+    90→    const up = () => { drag.current.on = false; };
+    91→    el.addEventListener('pointerdown', down);
+    92→    el.addEventListener('pointermove', move);
+    93→    el.addEventListener('pointerup', up);
+    94→    el.addEventListener('pointercancel', up);
+    95→    return () => {
+    96→      el.removeEventListener('pointerdown', down);
+    97→      el.removeEventListener('pointermove', move);
+    98→      el.removeEventListener('pointerup', up);
+    99→      el.removeEventListener('pointercancel', up);
+   100→    };
+   101→  }, [rot.rx, rot.rz]);
+   102→
+   103→  const hot = intensity >= 55;
+   104→  const waterZ = 4 + (intensity / 100) * 26;
+   105→  const levels = ['CALM', 'RAIN', 'FLOOD'] as const;
+   106→  const levelVal = { CALM: 18, RAIN: 52, FLOOD: 92 } as const;
+   107→
+   108→  return (
+   109→    <div className="hc-bento hc-morph relative overflow-hidden p-4" data-testid="spline-dashboard-viewport">
+   110→      {/* spline embed slot — set SPLINE_DASHBOARD_SCENE_URL to overlay */}
+   111→      <div className="mb-3 flex items-center justify-between gap-2">
+   112→        <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+   113→          <Radar className="size-3.5 text-[var(--hc-accent)]" />
+   114→          {t('terrainTitle')}
+   115→        </span>
+   116→        <SourceChip status={hot ? 'SIMULATED' : 'LIVE'} />
+   117→      </div>
+   118→
+   119→      <div className="hc-terrain-scene relative h-[300px] cursor-grab touch-none select-none active:cursor-grabbing" style={{ ['--hc-accent' as string]: hot ? '#FF4D5E' : undefined }}>
+   120→        <div
+   121→          ref={planeRef}
+   122→          className="hc-terrain-plane absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2"
+   123→          style={{ transform: `translate(-50%, -50%) rotateX(${rot.rx}deg) rotateZ(${rot.rz}deg)` }}
+   124→        >
+   125→          {/* terrain slab */}
+   126→          <div
+   127→            className="absolute inset-0 rounded-[22px] border border-white/10"
+   128→            style={{
+   129→              background: `
+   130→                radial-gradient(120px 90px at 26% 30%, rgba(16,217,160,0.16), transparent 70%),
+   131→                radial-gradient(150px 110px at 74% 66%, rgba(0,242,254,0.13), transparent 70%),
+   132→                radial-gradient(90px 70px at 60% 22%, rgba(167,139,250,0.10), transparent 70%),
+   133→                linear-gradient(145deg, rgba(14,22,38,0.9), rgba(6,10,19,0.95))`,
+   134→              boxShadow: 'inset 0 0 40px rgba(0,0,0,0.55), 0 30px 60px -18px rgba(0,0,0,0.7)',
+   135→            }}
+   136→          >
+   137→            {/* street grid */}
+   138→            <div
+   139→              className="absolute inset-0 rounded-[22px] opacity-35"
+   140→              style={{
+   141→                backgroundImage:
+   142→                  'linear-gradient(rgba(255,255,255,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.16) 1px, transparent 1px)',
+   143→                backgroundSize: '30px 30px',
+   144→                borderRadius: 'inherit',
+   145→                maskImage: 'radial-gradient(circle at 50% 50%, black 40%, transparent 95%)',
+   146→              }}
+   147→            />
+   148→            {/* river channel */}
+   149→            <svg viewBox="0 0 300 300" className="absolute inset-0 h-full w-full opacity-70">
+   150→              <path d="M-8 210 C 60 196, 96 236, 150 218 S 246 178, 310 196" fill="none" stroke="rgba(0,242,254,0.5)" strokeWidth="7" strokeLinecap="round" />
+   151→              <path d="M-8 210 C 60 196, 96 236, 150 218 S 246 178, 310 196" fill="none" stroke="rgba(0,242,254,0.22)" strokeWidth="16" strokeLinecap="round" />
+   152→            </svg>
+   153→
+   154→            {/* liquid water layer — rises & shifts colour with intensity */}
+   155→            <div
+   156→              className={cn('hc-water-layer absolute inset-1 rounded-[18px]', hot && 'hc-water-hot')}
+   157→              style={{ transform: `translateZ(${waterZ}px)`, opacity: 0.34 + (intensity / 100) * 0.4 }}
+   158→            />
+   159→
+   160→            {/* vertical beacons (hotspots) */}
+   161→            {[
+   162→              { x: '24%', y: '30%', h: 34 + intensity * 0.3, c: hot ? '#FF4D5E' : '#00F2FE' },
+   163→              { x: '68%', y: '58%', h: 22 + intensity * 0.22, c: hot ? '#FFB224' : '#10D9A0' },
+   164→              { x: '46%', y: '74%', h: 16 + intensity * 0.16, c: '#A78BFA' },
+   165→            ].map((b, i) => (
+   166→              <div key={i} className="absolute" style={{ left: b.x, top: b.y, transform: `translateZ(${waterZ + 2}px)`, transformStyle: 'preserve-3d' }}>
+   167→                <div className="hc-beacon relative w-[3px]" style={{ height: b.h, transform: 'rotateX(-90deg)', transformOrigin: 'bottom center' }}>
+   168→                  <span className="absolute -top-[5px] left-1/2 size-[9px] -translate-x-1/2 rounded-full hc-blink-dot" style={{ background: b.c, boxShadow: `0 0 14px ${b.c}` }} />
+   169→                </div>
+   170→              </div>
+   171→            ))}
+   172→          </div>
+   173→
+   174→          {/* ground glow */}
+   175→          <div className="absolute left-1/2 top-1/2 h-[280px] w-[280px] -translate-x-1/2 -translate-y-1/2 rounded-[100%] blur-2xl"
+   176→            style={{ background: hot ? 'rgba(255,77,94,0.16)' : 'rgba(0,242,254,0.14)', transform: `translate(-50%,-50%) rotateX(90deg) translateZ(-90px)` }} />
+   177→        </div>
+   178→
+   179→        {/* HUD */}
+   180→        <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/10 bg-black/35 px-2 py-1 backdrop-blur-md">
+   181→          <span className="flex items-center gap-1.5 text-[10px] font-medium text-white/70">
+   182→            <Move3d className="size-3" /> {t('dragHint')}
+   183→          </span>
+   184→        </div>
+   185→        <div className="absolute bottom-3 right-3 rounded-lg border border-white/10 bg-black/35 px-2.5 py-1 backdrop-blur-md">
+   186→          <span className={cn('font-mono text-[13px] font-bold', hot ? 'text-[#FF4D5E]' : 'hc-num')}>{intensity}%</span>
+   187→        </div>
+   188→      </div>
+   189→
+   190→      {/* water-level control */}
+   191→      <div className="mt-3 grid grid-cols-3 gap-1.5">
+   192→        {levels.map((lv) => (
+   193→          <button
+   194→            key={lv}
+   195→            type="button"
+   196→            onClick={() => setIntensity(levelVal[lv])}
+   197→            className={cn(
+   198→              'hc-focusable rounded-lg border px-2 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] transition-all duration-300',
+   199→              Math.abs(intensity - levelVal[lv]) < 12
+   200→                ? 'border-[var(--hc-accent)]/60 bg-[var(--hc-accent)]/10 text-[var(--hc-accent)]'
+   201→                : 'border-white/10 text-muted-foreground hover:border-white/25 hover:text-foreground'
+   202→            )}
+   203→          >
+   204→            {t(`level.${lv.toLowerCase()}`)}
+   205→          </button>
+   206→        ))}
+   207→      </div>
+   208→    </div>
+   209→  );
+   210→}
+   211→
+   212→// ============ SHARED BENTO PIECES ============
+   213→function BentoCard({ className, children }: { className?: string; children: React.ReactNode }) {
+   214→  return <div className={cn('hc-bento hc-morph hc-morph-hover p-5', className)}>{children}</div>;
+   215→}
+   216→
+   217→function CardHead({ icon: Icon, title, accent, right }: { icon: typeof Droplets; title: string; accent?: string; right?: React.ReactNode }) {
+   218→  return (
+   219→    <div className="mb-3.5 flex items-center justify-between gap-2">
+   220→      <span className="flex items-center gap-2 text-[12.5px] font-bold tracking-wide text-foreground">
+   221→        <span className="flex size-7 items-center justify-center rounded-lg" style={{ background: `color-mix(in srgb, ${accent ?? 'var(--hc-accent)'} 14%, transparent)`, border: `1px solid color-mix(in srgb, ${accent ?? 'var(--hc-accent)'} 30%, transparent)` }}>
+   222→          <Icon className="size-3.5" style={{ color: accent ?? 'var(--hc-accent)' }} />
+   223→        </span>
+   224→        {title}
+   225→      </span>
+   226→      {right}
+   227→    </div>
+   228→  );
+   229→}
+   230→
+   231→// ============ MAIN ============
+   232→export function BentoDashboard() {
+   233→  const t = useTranslations('bento');
+   234→  const tStatus = useTranslations('app.status');
+   235→  const setAppPage = useAppStore((s) => s.setAppPage);
+   236→  const user = useAppStore((s) => s.user);
+   237→
+   238→  const initialView: BentoView =
+   239→    user?.role === 'citizen' ? 'citizen'
+   240→      : user?.role && ['field', 'infra', 'disaster'].includes(user.role) ? 'responder'
+   241→        : 'admin';
+   242→
+   243→  const [view, setView] = useState<BentoView>(initialView);
+   244→  const [incidents, setIncidents] = useState<Incident[]>([]);
+   245→  const [tasks, setTasks] = useState<Task[]>([]);
+   246→  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+   247→  const [wx, setWx] = useState<{ precipitation: number; windSpeed: number; humidity: number; status: string } | null>(null);
+   248→  const [reportOpen, setReportOpen] = useState(false);
+   249→
+   250→  useEffect(() => {
+   251→    api<{ incidents: Incident[] }>('/api/incidents').then((r) => setIncidents(r.incidents)).catch(() => {});
+   252→    api<{ tasks: Task[] }>('/api/tasks').then((r) => setTasks(r.tasks)).catch(() => {});
+   253→    api<Analytics>('/api/analytics').then(setAnalytics).catch(() => {});
+   254→    fetch('/api/weather?lat=13.0827&lon=80.2707&city=Chennai')
+   255→      .then((r) => r.json())
+   256→      .then((w) => setWx({ precipitation: w.current?.precipitation ?? 0, windSpeed: w.current?.windSpeed ?? 0, humidity: w.current?.humidity ?? 0, status: w.status ?? 'SIMULATED' }))
+   257→      .catch(() => {});
+   258→  }, []);
+   259→
+   260→  const openIncidents = useMemo(() => incidents.filter((i) => !['RESOLVED'].includes(i.status.toUpperCase())), [incidents]);
+   261→  const mine = useMemo(() => {
+   262→    if (!user) return incidents.slice(0, 4);
+   263→    const own = incidents.filter((i) => i.reporterId === user.id);
+   264→    return (own.length > 0 ? own : incidents).slice(0, 4); // demo fallback keeps the grid alive
+   265→  }, [incidents, user]);
+   266→  const queue = useMemo(
+   267→    () => openIncidents
+   268→      .filter((i) => ['HIGH', 'CRITICAL'].includes(i.severity.toUpperCase()))
+   269→      .sort((a, b) => (a.severity === 'CRITICAL' ? -1 : 1) - (b.severity === 'CRITICAL' ? -1 : 1))
+   270→      .slice(0, 5),
+   271→    [openIncidents]
+   272→  );
+   273→  const dispatches = useMemo(() => tasks.filter((tk) => tk.status !== 'VERIFIED').slice(0, 4), [tasks]);
+   274→  const forecast = useMemo(() => {
+   275→    const trend = analytics?.trend ?? [];
+   276→    return trend.slice(-10).map((p, i) => ({ h: `-${trend.length - i}d`, v: p.score }));
+   277→  }, [analytics]);
+   278→
+   279→  const views: { key: BentoView; icon: typeof Users; label: string }[] = [
+   280→    { key: 'citizen', icon: Users, label: t('viewCitizen') },
+   281→    { key: 'responder', icon: Siren, label: t('viewResponder') },
+   282→    { key: 'admin', icon: Building2, label: t('viewAdmin') },
+   283→  ];
+   284→
+   285→  return (
+   286→    <div className="space-y-5">
+   287→      {/* master control header */}
+   288→      <div className="hc-bento hc-morph flex flex-wrap items-center justify-between gap-3 p-4">
+   289→        <div>
+   290→          <h1 className="font-display text-xl font-bold tracking-tight">{t('title')}</h1>
+   291→          <p className="mt-0.5 text-[12px] text-muted-foreground">{t('sub')}</p>
+   292→        </div>
+   293→        <div className="flex items-center gap-2">
+   294→          <SourceChip status={wx?.status === 'LIVE' ? 'LIVE' : 'SIMULATED'} />
+   295→          <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+   296→            {views.map((v) => (
+   297→              <button
+   298→                key={v.key}
+   299→                type="button"
+   300→                onClick={() => setView(v.key)}
+   301→                className={cn(
+   302→                  'hc-morph flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold',
+   303→                  view === v.key
+   304→                    ? 'bg-gradient-to-r from-[#00F2FE] to-[#059669] text-[#04121A] shadow-[0_0_18px_rgba(0,242,254,0.35)]'
+   305→                    : 'text-muted-foreground hover:text-foreground'
+   306→                )}
+   307→              >
+   308→                <v.icon className="size-3.5" />
+   309→                <span className="hidden sm:inline">{v.label}</span>
+   310→              </button>
+   311→            ))}
+   312→          </div>
+   313→        </div>
+   314→      </div>
+   315→
+   316→      <div className="grid gap-5 xl:grid-cols-[minmax(0,430px)_minmax(0,1fr)]">
+   317→        {/* 3D centerpiece */}
+   318→        <div className="xl:sticky xl:top-4 xl:self-start">
+   319→          <HydroTerrain critical={analytics?.totals.critical ?? 0} rainMm={wx?.precipitation ?? 0} />
+   320→        </div>
+   321→
+   322→        {/* role bento field */}
+   323→        <AnimatePresence mode="wait">
+   324→          <motion.div
+   325→            key={view}
+   326→            initial={{ opacity: 0, y: 18, scale: 0.985 }}
+   327→            animate={{ opacity: 1, y: 0, scale: 1 }}
+   328→            exit={{ opacity: 0, y: -14, scale: 0.99 }}
+   329→            transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
+   330→            className="space-y-5"
+   331→          >
+   332→            {view === 'citizen' && (
+   333→              <>
+   334→                <BentoCard className="relative overflow-hidden">
+   335→                  <div className="pointer-events-none absolute -right-10 -top-14 size-44 rounded-full bg-[#10D9A0]/15 blur-3xl" />
+   336→                  <CardHead icon={Radio} title={t('quickReport')} accent="#10D9A0" />
+   337→                  <p className="mb-4 max-w-md text-[12.5px] leading-relaxed text-muted-foreground">{t('quickReportSub')}</p>
+   338→                  <button
+   339→                    type="button"
+   340→                    onClick={() => setReportOpen(true)}
+   341→                    className="hc-focusable flex items-center gap-3 rounded-2xl border border-[#10D9A0]/40 bg-[#10D9A0]/10 px-5 py-4 text-left transition-transform duration-300 hover:scale-[1.015]"
+   342→                    style={{ animation: 'hc-pulse-green 2.4s cubic-bezier(0.4,0,0.6,1) infinite' }}
+   343→                  >
+   344→                    <span className="flex size-11 items-center justify-center rounded-xl bg-[#10D9A0] text-[#04121A] shadow-[0_0_24px_rgba(16,217,160,0.5)]">
+   345→                      <Droplet className="size-5" />
+   346→                    </span>
+   347→                    <span>
+   348→                      <span className="block text-[14px] font-bold text-foreground">{t('quickReportCta')}</span>
+   349→                      <span className="block text-[11.5px] text-muted-foreground">{t('quickReportMeta')}</span>
+   350→                    </span>
+   351→                    <ChevronRight className="ml-auto size-4 text-[#10D9A0]" />
+   352→                  </button>
+   353→                </BentoCard>
+   354→
+   355→                <BentoCard>
+   356→                  <CardHead icon={ShieldAlert} title={t('myIncidents')} accent="#A78BFA" right={<button onClick={() => setAppPage('incidents')} className="text-[11px] font-semibold text-[var(--hc-accent)] hover:underline">{t('seeAll')}</button>} />
+   357→                  <div className="space-y-2">
+   358→                    {mine.length === 0 && <p className="py-3 text-center text-[12px] text-muted-foreground">{t('empty')}</p>}
+   359→                    {mine.map((inc) => (
+   360→                      <button key={inc.id} onClick={() => setAppPage('incidents')} className="hc-morph group flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5 text-left hover:border-white/15">
+   361→                        <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+   362→                        <span className="min-w-0 flex-1">
+   363→                          <span className="block truncate text-[12.5px] font-semibold">{inc.title}</span>
+   364→                          <span className="block text-[10.5px] text-muted-foreground">{inc.city} · {timeAgo(inc.createdAt)}</span>
+   365→                        </span>
+   366→                        <span className="hc-tag shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider" style={{ ['--tag' as string]: tagColor(inc.status) }}>
+   367→                          {tStatus(inc.status.toUpperCase())}
+   368→                        </span>
+   369→                      </button>
+   370→                    ))}
+   371→                  </div>
+   372→                </BentoCard>
+   373→
+   374→                <BentoCard>
+   375→                  <CardHead icon={Megaphone} title={t('advisories')} accent="#FFB224" />
+   376→                  <ul className="space-y-2.5">
+   377→                    {(['a1', 'a2', 'a3'] as const).map((k) => (
+   378→                      <li key={k} className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
+   379→                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[#FFB224] shadow-[0_0_8px_#FFB224]" />
+   380→                        {t(`adv.${k}`)}
+   381→                      </li>
+   382→                    ))}
+   383→                  </ul>
+   384→                </BentoCard>
+   385→              </>
+   386→            )}
+   387→
+   388→            {view === 'responder' && (
+   389→              <>
+   390→                <BentoCard className={cn(queue.length > 0 && '[animation:hc-breathe-red_2.6s_ease-in-out_infinite]')}>
+   391→                  <CardHead icon={Siren} title={t('queue')} accent="#FF4D5E" right={<span className="hc-tag rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider" style={{ ['--tag' as string]: '#FF4D5E' }}>{queue.length} {t('live')}</span>} />
+   392→                  <div className="space-y-2">
+   393→                    {queue.length === 0 && <p className="py-3 text-center text-[12px] text-muted-foreground">{t('empty')}</p>}
+   394→                    {queue.map((inc, idx) => (
+   395→                      <button key={inc.id} onClick={() => setAppPage('incidents')} className={cn(
+   396→                        'hc-morph flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left',
+   397→                        idx === 0 ? 'border-[#FF4D5E]/40 bg-[#FF4D5E]/[0.06]' : 'border-white/[0.06] bg-white/[0.03] hover:border-white/15'
+   398→                      )}>
+   399→                        <PhoneCall className={cn('size-3.5 shrink-0', idx === 0 ? 'text-[#FF4D5E]' : 'text-muted-foreground')} />
+   400→                        <span className="min-w-0 flex-1">
+   401→                          <span className="block truncate text-[12.5px] font-semibold">{inc.title}</span>
+   402→                          <span className="block text-[10.5px] text-muted-foreground">{inc.city} · {timeAgo(inc.createdAt)}</span>
+   403→                        </span>
+   404→                        <span className="hc-tag shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider" style={{ ['--tag' as string]: inc.severity.toUpperCase() === 'CRITICAL' ? '#FF4D5E' : '#FFB224' }}>
+   405→                          {inc.severity.toUpperCase()}
+   406→                        </span>
+   407→                      </button>
+   408→                    ))}
+   409→                  </div>
+   410→                </BentoCard>
+   411→
+   412→                <BentoCard>
+   413→                  <CardHead icon={Navigation} title={t('dispatches')} accent="#FFB224" right={<button onClick={() => setAppPage('tasks')} className="text-[11px] font-semibold text-[var(--hc-accent)] hover:underline">{t('seeAll')}</button>} />
+   414→                  <div className="space-y-2">
+   415→                    {dispatches.length === 0 && <p className="py-3 text-center text-[12px] text-muted-foreground">{t('empty')}</p>}
+   416→                    {dispatches.map((tk) => {
+   417→                      const batt = 55 + hashNum(tk.id, 0, 44);
+   418→                      return (
+   419→                        <button key={tk.id} onClick={() => setAppPage('tasks')} className="hc-morph flex w-full items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2.5 text-left hover:border-white/15">
+   420→                          <span className="min-w-0 flex-1">
+   421→                            <span className="block truncate text-[12.5px] font-semibold">{tk.title}</span>
+   422→                            <span className="block truncate text-[10.5px] text-muted-foreground">{tk.assignedTo?.name ?? '—'} · {tk.city ?? '—'}</span>
+   423→                          </span>
+   424→                          <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
+   425→                            <span className="hc-tag rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ ['--tag' as string]: '#4CC3FF' }}>
+   426→                              <BatteryMedium className="mr-0.5 inline size-3" />{batt}%
+   427→                            </span>
+   428→                            <span className="hc-tag rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ ['--tag' as string]: '#10D9A0' }}>
+   429→                              <Navigation className="mr-0.5 inline size-3" />GPS
+   430→                            </span>
+   431→                          </span>
+   432→                          <span className="hc-tag shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider" style={{ ['--tag' as string]: tagColor(tk.status) }}>
+   433→                            {tStatus(tk.status.toUpperCase())}
+   434→                          </span>
+   435→                        </button>
+   436→                      );
+   437→                    })}
+   438→                  </div>
+   439→                  <p className="mt-2.5 text-[10px] text-muted-foreground">{t('telemetryNote')}</p>
+   440→                </BentoCard>
+   441→
+   442→                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+   443→                  {[
+   444→                    { icon: Droplets, label: t('mRain'), val: `${(wx?.precipitation ?? 0).toFixed(1)}`, unit: 'mm' },
+   445→                    { icon: Wind, label: t('mWind'), val: `${Math.round(wx?.windSpeed ?? 0)}`, unit: 'km/h' },
+   446→                    { icon: Gauge, label: t('mHumidity'), val: `${Math.round(wx?.humidity ?? 0)}`, unit: '%' },
+   447→                    { icon: Waves, label: t('mFlow'), val: `${(1.2 + (wx?.precipitation ?? 0) * 0.14).toFixed(1)}`, unit: 'm³/s' },
+   448→                  ].map((m) => (
+   449→                    <BentoCard key={m.label} className="p-4">
+   450→                      <m.icon className="mb-2 size-4 text-[var(--hc-accent)]" />
+   451→                      <div className="hc-num text-[22px] font-bold leading-none">
+   452→                        {m.val}<span className="ml-0.5 text-[10px] text-muted-foreground">{m.unit}</span>
+   453→                      </div>
+   454→                      <div className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{m.label}</div>
+   455→                    </BentoCard>
+   456→                  ))}
+   457→                </div>
+   458→              </>
+   459→            )}
+   460→
+   461→            {view === 'admin' && (
+   462→              <>
+   463→                <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+   464→                  {[
+   465→                    { label: t('kIncidents'), val: analytics?.totals.incidents ?? 0 },
+   466→                    { label: t('kOpen'), val: analytics?.totals.openIncidents ?? 0 },
+   467→                    { label: t('kCritical'), val: analytics?.totals.critical ?? 0 },
+   468→                    { label: t('kTasks'), val: analytics?.totals.activeTasks ?? 0 },
+   469→                  ].map((k) => (
+   470→                    <BentoCard key={k.label} className="p-4">
+   471→                      <div className="font-display text-[30px] font-bold leading-none tracking-tight">{k.val}</div>
+   472→                      <div className="mt-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{k.label}</div>
+   473→                    </BentoCard>
+   474→                  ))}
+   475→                </div>
+   476→
+   477→                <BentoCard>
+   478→                  <CardHead icon={TrendingUp} title={t('forecast')} accent="#00F2FE" right={<span className="hc-tag rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider" style={{ ['--tag' as string]: '#A78BFA' }}>DEMO</span>} />
+   479→                  <div className="h-[210px] w-full">
+   480→                    <ResponsiveContainer width="100%" height="100%">
+   481→                      <AreaChart data={forecast} margin={{ top: 6, right: 10, left: -22, bottom: 0 }}>
+   482→                        <defs>
+   483→                          <linearGradient id="hcGlow" x1="0" y1="0" x2="0" y2="1">
+   484→                            <stop offset="0%" stopColor="#00F2FE" stopOpacity={0.5} />
+   485→                            <stop offset="100%" stopColor="#00F2FE" stopOpacity={0.02} />
+   486→                          </linearGradient>
+   487→                        </defs>
+   488→                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,140,160,0.14)" />
+   489→                        <XAxis dataKey="h" tick={{ fontSize: 10, fill: 'rgba(140,160,185,0.8)' }} stroke="rgba(128,140,160,0.4)" />
+   490→                        <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'rgba(140,160,185,0.8)' }} stroke="rgba(128,140,160,0.4)" />
+   491→                        <RTooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }} />
+   492→                        <Area type="monotone" dataKey="v" stroke="#00F2FE" strokeWidth={2.4} fill="url(#hcGlow)"
+   493→                          style={{ filter: 'drop-shadow(0 0 8px rgba(0,242,254,0.6))' }} />
+   494→                      </AreaChart>
+   495→                    </ResponsiveContainer>
+   496→                  </div>
+   497→                  <p className="mt-1.5 text-[10.5px] text-muted-foreground">{t('forecastNote')}</p>
+   498→                </BentoCard>
+   499→
+   500→                <BentoCard>
+   501→                  <CardHead icon={Building2} title={t('audit')} accent="#A78BFA" right={<button onClick={() => setAppPage('incidents')} className="text-[11px] font-semibold text-[var(--hc-accent)] hover:underline">{t('seeAll')}</button>} />
+   502→                  <div className="overflow-x-auto">
+   503→                    <table className="w-full min-w-[420px] text-left">
+   504→                      <thead>
+   505→                        <tr className="border-b border-white/[0.07] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+   506→                          <th className="pb-2 pr-3">{t('colDistrict')}</th>
+   507→                          <th className="pb-2 pr-3 text-right">{t('colIncidents')}</th>
+   508→                          <th className="pb-2 pr-3 text-right">{t('colCritical')}</th>
+   509→                          <th className="pb-2 text-right">{t('colOpen')}</th>
+   510→                        </tr>
+   511→                      </thead>
+   512→                      <tbody>
+   513→                        {Object.entries(
+   514→                          incidents.reduce<Record<string, { n: number; crit: number; open: number }>>((acc, i) => {
+   515→                            const c = acc[i.city] ?? { n: 0, crit: 0, open: 0 };
+   516→                            c.n++;
+   517→                            if (i.severity.toUpperCase() === 'CRITICAL') c.crit++;
+   518→                            if (!['RESOLVED'].includes(i.status.toUpperCase())) c.open++;
+   519→                            acc[i.city] = c;
+   520→                            return acc;
+   521→                          }, {})
+   522→                        ).slice(0, 7).map(([city, s]) => (
+   523→                          <tr key={city} className="hc-morph border-b border-white/[0.04] text-[12.5px] last:border-0 hover:bg-white/[0.03]">
+   524→                            <td className="py-2 pr-3 font-semibold">{city}</td>
+   525→                            <td className="py-2 pr-3 text-right font-mono text-muted-foreground">{s.n}</td>
+   526→                            <td className="py-2 pr-3 text-right font-mono" style={{ color: s.crit ? '#FF4D5E' : 'var(--muted-foreground)' }}>{s.crit}</td>
+   527→                            <td className="py-2 text-right font-mono" style={{ color: s.open ? '#FFB224' : 'var(--muted-foreground)' }}>{s.open}</td>
+   528→                          </tr>
+   529→                        ))}
+   530→                      </tbody>
+   531→                    </table>
+   532→                  </div>
+   533→                </BentoCard>
+   534→              </>
+   535→            )}
+   536→          </motion.div>
+   537→        </AnimatePresence>
+   538→      </div>
+   539→
+   540→      <IncidentCreateDialog open={reportOpen} onClose={() => setReportOpen(false)} onCreated={() => api<{ incidents: Incident[] }>('/api/incidents').then((r) => setIncidents(r.incidents)).catch(() => {})} />
+   541→    </div>
+   542→  );
+   543→}
+   544→

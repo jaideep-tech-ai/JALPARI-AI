@@ -260,7 +260,7 @@ export function SignInScreen() {
     if (!u.emailVerified) { setView('verify'); return; }
     if (u.role === null) { setView('roleSelect'); return; }
     if (!u.onboarded) { setView('onboarding'); return; }
-    setAppPage('portal'); // role-specific landing
+    setAppPage('dashboard'); // Operations Center home
     setView('app');
   }
 
@@ -290,7 +290,7 @@ export function SignInScreen() {
       await api('/api/auth', { body: { action: 'login', email: em, password: 'Demo#Pass1' } });
       const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
       setUser(session.user);
-      setAppPage('portal');
+      setAppPage('dashboard');
       setView('app');
     } catch (e2) {
       setErr((e2 as Error).message);

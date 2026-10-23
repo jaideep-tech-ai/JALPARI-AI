@@ -29,7 +29,10 @@ export const metadata: Metadata = {
   description:
     "AI Intervention Intelligence for Urban Water Resilience. Turn weather signals, geographic intelligence and field observations into clear priorities and preventive action.",
   keywords: ["water risk", "urban flooding", "intervention intelligence", "civic tech", "resilience"],
-  icons: { icon: "/logo.svg" },
+  icons: {
+    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }, { url: "/logo.svg", type: "image/svg+xml" }],
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
