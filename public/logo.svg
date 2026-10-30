@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 108" fill="none">
+  <defs>
+    <linearGradient id="jgShield" x1="50" y1="8" x2="50" y2="102" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22415F"/>
+      <stop offset="1" stop-color="#152C45"/>
+    </linearGradient>
+    <linearGradient id="jgDrop" x1="50" y1="24" x2="50" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A6DDF6"/>
+      <stop offset="1" stop-color="#4D9FD8"/>
+    </linearGradient>
+  </defs>
+  <!-- shield body -->
+  <path d="M50 5 L91 19 V52 C91 74 76 91 50 103 C24 91 9 74 9 52 V19 Z"
+        fill="url(#jgShield)" stroke="#59C6F2" stroke-width="4" stroke-linejoin="round"/>
+  <!-- water drop -->
+  <path d="M50 22 C58 34 69 44 69 57 A19 19 0 1 1 31 57 C31 44 42 34 50 22 Z"
+        fill="url(#jgDrop)"/>
+  <!-- wave lines -->
+  <path d="M30 56 C36 50 42 62 50 56 C58 50 64 62 70 56"
+        stroke="#1B3A5A" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <path d="M33 68 C39 62 45 74 53 68 C60 62 65 71 68 67"
+        stroke="#1B3A5A" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+</svg>

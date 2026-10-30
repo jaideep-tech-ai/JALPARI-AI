@@ -1,0 +1,616 @@
+     1→'use client';
+     2→
+     3→/**
+     4→ * PUBLIC LANDING — ReactBits Pro editorial rebuild of the marketing site.
+     5→ * Light-only. Photography hero with tabs, trust marquee, function tabs,
+     6→ * orbital Earth panel, WIRED role cards (tap a role → its own landing
+     7→ * page via one-tap demo sign-in), workflow tabs, benchmark, stories,
+     8→ * plans, FAQ, closing CTA with image helix.
+     9→ */
+    10→
+    11→import { useEffect, useRef, useState } from 'react';
+    12→import { useTranslations } from 'next-intl';
+    13→import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+    14→import {
+    15→  ArrowRight, ArrowUpRight, Check, Droplets, Building2, Siren, HardHat, Radar,
+    16→  Crown, Map as MapIcon, Loader2, MousePointerClick,
+    17→} from 'lucide-react';
+    18→import { api } from '@/lib/client-api';
+    19→import { useAppStore } from '@/lib/store';
+    20→import type { SessionUser } from '@/lib/types';
+    21→import { cn } from '@/lib/utils';
+    22→import { ProNav, type ProNavSection } from './pro-nav';
+    23→import { Reveal, DotField, CountUp, PillTabs, Marquee, Faq, ProFooter } from './pro-kit';
+    24→import { SectionHead, BenchRow, Stories } from './role-landing';
+    25→import { EarthScene } from '../earth-scene';
+    26→
+    27→const DEMO_EMAIL: Record<string, string> = {
+    28→  citizen: 'citizen@jalguard.demo',
+    29→  municipal: 'officer@jalguard.demo',
+    30→  disaster: 'disaster@jalguard.demo',
+    31→  field: 'field@jalguard.demo',
+    32→  analyst: 'analyst@jalguard.demo',
+    33→  admin: 'admin@jalguard.demo',
+    34→};
+    35→
+    36→const ROLES = [
+    37→  { key: 'citizen', accent: '#16A34A', icon: Droplets, email: DEMO_EMAIL.citizen },
+    38→  { key: 'municipal', accent: '#0F766E', icon: Building2, email: DEMO_EMAIL.municipal },
+    39→  { key: 'disaster', accent: '#DC2626', icon: Siren, email: DEMO_EMAIL.disaster },
+    40→  { key: 'field', accent: '#B45309', icon: HardHat, email: DEMO_EMAIL.field },
+    41→  { key: 'analyst', accent: '#0891B2', icon: Radar, email: DEMO_EMAIL.analyst },
+    42→  { key: 'admin', accent: '#7C3AED', icon: Crown, email: DEMO_EMAIL.admin },
+    43→] as const;
+    44→
+    45→type RoleKey = (typeof ROLES)[number]['key'];
+    46→
+    47→export function PublicLanding() {
+    48→  const tP = useTranslations('pro');
+    49→  const tLx = useTranslations('lx');
+    50→  const tPortal = useTranslations('portal');
+    51→  const { setUser, setAppPage, setView } = useAppStore();
+    52→  const reduced = useReducedMotion();
+    53→
+    54→  const [heroTab, setHeroTab] = useState('0');
+    55→  const [fnTab, setFnTab] = useState('mon');
+    56→  const [wfTab, setWfTab] = useState('0');
+    57→  const [entering, setEntering] = useState<RoleKey | null>(null);
+    58→  const [err, setErr] = useState('');
+    59→  const orbitRef = useRef<HTMLDivElement>(null);
+    60→  const [orbitVisible, setOrbitVisible] = useState(false);
+    61→
+    62→  // mount the WebGL globe only when the orbit panel approaches the viewport
+    63→  useEffect(() => {
+    64→    const el = orbitRef.current;
+    65→    if (!el) return;
+    66→    const io = new IntersectionObserver(
+    67→      (entries) => entries[0]?.isIntersecting && setOrbitVisible(true),
+    68→      { rootMargin: '400px' },
+    69→    );
+    70→    io.observe(el);
+    71→    return () => io.disconnect();
+    72→  }, []);
+    73→
+    74→  const heroImages = [
+    75→    { src: '/images/landing/monsoon-2.jpg', tag: tP('pubHeroTag1') },
+    76→    { src: '/images/landing/rescue-1.jpg', tag: tP('pubHeroTag2') },
+    77→    { src: '/images/landing/river-city-3.jpg', tag: tP('pubHeroTag3') },
+    78→  ];
+    79→  const hero = heroImages[Number(heroTab)];
+    80→
+    81→  const sections: ProNavSection[] = [
+    82→    { id: 'product', label: tLx('benKicker') },
+    83→    { id: 'orbit', label: tP('orbitKicker') },
+    84→    { id: 'roles', label: tLx('ftKicker') },
+    85→    { id: 'loop', label: tP('wfKicker') },
+    86→    { id: 'plans', label: tP('planKicker') },
+    87→    { id: 'faq', label: tP('faqKicker') },
+    88→  ];
+    89→
+    90→  const fnOn = fnTab === 'mon';
+    91→  const wfData = [0, 1, 2].map((k) => ({
+    92→    title: tP(`wf${k + 1}Title` as 'wf1Title'),
+    93→    body: tP(`wf${k + 1}Body` as 'wf1Body'),
+    94→    tab: tP(`wfTab${k + 1}` as 'wfTab1'),
+    95→    img: ['/images/landing/river-city-1.jpg', '/images/landing/flood-street-2.jpg', '/images/landing/rescue-3.jpg'][k],
+    96→    imgTag: tP(`wfImgTag${k + 1}` as 'wfImgTag1'),
+    97→  }));
+    98→  const wf = wfData[Number(wfTab)];
+    99→
+   100→  const bench = [
+   101→    { label: tP('benchCol1'), unit: tP('benchUnit1'), before: tP('benchBefore1' as 'benchBefore1'), after: tP('benchAfter1' as 'benchAfter1') },
+   102→    { label: tP('benchCol2'), unit: tP('benchUnit2'), before: tP('benchBefore2' as 'benchBefore2'), after: tP('benchAfter2' as 'benchAfter2') },
+   103→    { label: tP('benchCol3'), unit: tP('benchUnit3'), before: tP('benchBefore3' as 'benchBefore3'), after: tP('benchAfter3' as 'benchAfter3') },
+   104→    { label: tP('benchCol4'), unit: tP('benchUnit4'), before: tP('benchBefore4' as 'benchBefore4'), after: tP('benchAfter4' as 'benchAfter4') },
+   105→  ];
+   106→  const timeline = tP.raw('benchTimeline') as { when: string; what: string }[];
+   107→
+   108→  const plans = [
+   109→    { name: tP('plan1Name'), price: tP('plan1Price'), per: tP('plan1Per'), desc: tP('plan1Desc'),
+   110→      feats: [tP('plan1F1'), tP('plan1F2'), tP('plan1F3')], hot: false },
+   111→    { name: tP('plan2Name'), price: tP('plan2Price'), per: tP('plan2Per'), desc: tP('plan2Desc'),
+   112→      feats: [tP('plan2F1'), tP('plan2F2'), tP('plan2F3')], hot: true },
+   113→    { name: tP('plan3Name'), price: tP('plan3Price'), per: tP('plan3Per'), desc: tP('plan3Desc'),
+   114→      feats: [tP('plan3F1'), tP('plan3F2'), tP('plan3F3')], hot: false },
+   115→  ];
+   116→
+   117→  const faqItems = [1, 2, 3, 4, 5].map((k) => ({
+   118→    q: tP(`faq${k}Q` as 'faq1Q'), a: tP(`faq${k}A` as 'faq1A'),
+   119→  }));
+   120→
+   121→  /** one-tap demo sign-in → that role's own landing page */
+   122→  async function openRole(r: (typeof ROLES)[number]) {
+   123→    if (entering) return;
+   124→    setErr('');
+   125→    setEntering(r.key);
+   126→    try {
+   127→      await api('/api/auth', { body: { action: 'login', email: r.email, password: 'Demo#Pass1' } });
+   128→      const session = await api<{ user: SessionUser }>('/api/auth');
+   129→      setUser(session.user);
+   130→      setAppPage('portal');
+   131→      setView('app'); // portal renders the role's ReactBits landing page
+   132→      window.scrollTo({ top: 0, behavior: 'auto' });
+   133→    } catch (e2) {
+   134→      setErr((e2 as Error).message);
+   135→      setEntering(null);
+   136→    }
+   137→  }
+   138→
+   139→  return (
+   140→    <div className="pro-root min-h-screen">
+   141→      <ProNav sections={sections} ctaLabel={tLx('heroCta')} />
+   142→
+   143→      {/* ================= HERO ================= */}
+   144→      <header className="relative overflow-hidden pt-32 pb-16 md:pt-40 md:pb-24">
+   145→        <DotField density={30} color="rgba(22,33,29,0.10)" accent="rgba(18,137,126,0.5)" />
+   146→        <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-5 md:px-8 lg:grid-cols-[1.05fr_1fr]">
+   147→          <div>
+   148→            <Reveal>
+   149→              <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--pro-line)] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[color:var(--pro-accent-ink)] shadow-[var(--pro-shadow)]">
+   150→                <span className="pro-live-dot" aria-hidden /> {tP('pubBadge')}
+   151→              </span>
+   152→            </Reveal>
+   153→            <Reveal delay={0.08}>
+   154→              <h1 className="pro-display mt-5 text-[2.7rem] leading-[1.03] md:text-[3.6rem]">
+   155→                {tLx('heroTitle1')}
+   156→                <span className="block text-[color:var(--pro-accent)]">{tLx('heroTitle2')}</span>
+   157→              </h1>
+   158→            </Reveal>
+   159→            <Reveal delay={0.16}>
+   160→              <p className="pro-lead mt-5 max-w-xl">{tLx('heroSub')}</p>
+   161→            </Reveal>
+   162→            <Reveal delay={0.24} className="mt-8 flex flex-wrap items-center gap-3">
+   163→              <button type="button" onClick={() => setView('signup')} className="pro-btn pro-btn-accent">
+   164→                {tLx('heroCta')} <ArrowRight className="size-4" aria-hidden />
+   165→              </button>
+   166→              <button
+   167→                type="button"
+   168→                onClick={() => document.getElementById('roles')?.scrollIntoView({ behavior: 'smooth' })}
+   169→                className="pro-btn pro-btn-ghost"
+   170→              >
+   171→                <MousePointerClick className="size-4" aria-hidden /> {tLx('ftCta')}
+   172→              </button>
+   173→            </Reveal>
+   174→            <Reveal delay={0.32} className="mt-8 flex items-center gap-3 text-[12.5px] font-medium text-[color:var(--pro-muted)]">
+   175→              <span className="pro-live-dot" aria-hidden /> {tLx('heroNote')}
+   176→            </Reveal>
+   177→          </div>
+   178→
+   179→          <Reveal delay={0.15} y={34}>
+   180→            <div className="relative">
+   181→              <PillTabs
+   182→                idBase="pub-hero"
+   183→                className="relative z-10 mb-4"
+   184→                tabs={heroImages.map((h, i) => ({ key: String(i), label: h.tag }))}
+   185→                active={heroTab}
+   186→                onChange={setHeroTab}
+   187→              />
+   188→              <div className="pro-img aspect-[4/3] w-full">
+   189→                <AnimatePresence mode="wait">
+   190→                  <motion.img
+   191→                    key={hero.src}
+   192→                    src={hero.src}
+   193→                    alt={hero.tag}
+   194→                    initial={reduced ? false : { opacity: 0, scale: 1.04 }}
+   195→                    animate={{ opacity: 1, scale: 1 }}
+   196→                    exit={{ opacity: 0 }}
+   197→                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+   198→                    className="absolute inset-0 h-full w-full object-cover"
+   199→                  />
+   200→                </AnimatePresence>
+   201→                <span className="pro-img-tag"><span className="pro-live-dot" aria-hidden /> {hero.tag}</span>
+   202→              </div>
+   203→              {/* floating sensor comment chip — Sparkdesign review bubble */}
+   204→              <div className="pro-card pro-float absolute -bottom-6 -left-4 hidden max-w-[250px] items-start gap-2.5 p-3.5 md:flex lg:-left-10">
+   205→                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--pro-sage-soft)] text-[color:var(--pro-accent-ink)]">
+   206→                  <Droplets className="size-3.5" aria-hidden />
+   207→                </span>
+   208→                <span className="text-[12px] font-medium leading-snug text-[color:var(--pro-muted)]">
+   209→                  {tLx('heroChipComment')}
+   210→                  <span className="mt-1 block text-[11px] font-semibold text-[color:var(--pro-ink)]">{tLx('heroChipWho')}</span>
+   211→                </span>
+   212→              </div>
+   213→              <div className="pro-card absolute -top-5 right-3 hidden items-center gap-2 p-3.5 md:flex">
+   214→                <span className="pro-live-dot" aria-hidden />
+   215→                <span className="text-[12px] font-semibold text-[color:var(--pro-ink)]">{tLx('heroChipOk')}</span>
+   216→              </div>
+   217→            </div>
+   218→          </Reveal>
+   219→        </div>
+   220→      </header>
+   221→
+   222→      {/* ================= TRUST MARQUEE ================= */}
+   223→      <section className="border-y border-[color:var(--pro-line)] bg-white py-5">
+   224→        <Marquee items={[tP('trust1'), tP('trust2'), tP('trust3'), tP('trust4'), tP('trust5'), tP('trust6'), tP('trust7'), tP('trust8')]} />
+   225→      </section>
+   226→
+   227→      {/* ================= FUNCTION TABS ================= */}
+   228→      <section id="product" className="scroll-mt-24 py-16 md:py-24">
+   229→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   230→          <SectionHead kicker={tP('fnKicker')} title={tP('fnTitle')} />
+   231→          <Reveal delay={0.1} className="mt-7">
+   232→            <PillTabs
+   233→              idBase="pub-fn"
+   234→              tabs={[{ key: 'mon', label: tP('fnTab1') }, { key: 'act', label: tP('fnTab2') }]}
+   235→              active={fnTab}
+   236→              onChange={setFnTab}
+   237→            />
+   238→          </Reveal>
+   239→          <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_1.15fr]">
+   240→            <AnimatePresence mode="wait">
+   241→              <motion.div
+   242→                key={fnTab}
+   243→                initial={{ opacity: 0, y: 16 }}
+   244→                animate={{ opacity: 1, y: 0 }}
+   245→                exit={{ opacity: 0, y: -12 }}
+   246→                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+   247→              >
+   248→                <h3 className="pro-display text-2xl md:text-[1.8rem]">{fnOn ? tP('fnMonTitle') : tP('fnActTitle')}</h3>
+   249→                <p className="pro-lead mt-4">{fnOn ? tP('fnMonBody') : tP('fnActBody')}</p>
+   250→                <ul className="mt-6 space-y-3">
+   251→                  {(fnOn ? [tP('fnMonA'), tP('fnMonB'), tP('fnMonC')] : [tP('fnActA'), tP('fnActB'), tP('fnActC')]).map((f) => (
+   252→                    <li key={f} className="flex items-start gap-3 text-[14.5px] font-medium text-[color:var(--pro-ink)]/85">
+   253→                      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[color:var(--pro-sage-soft)] text-[color:var(--pro-accent-ink)]">
+   254→                        <Check className="size-3" aria-hidden />
+   255→                      </span>
+   256→                      {f}
+   257→                    </li>
+   258→                  ))}
+   259→                </ul>
+   260→              </motion.div>
+   261→            </AnimatePresence>
+   262→
+   263→            <Reveal delay={0.12}>
+   264→              <div className="pro-card-flat overflow-hidden">
+   265→                <div className="flex items-center gap-2 border-b border-[color:var(--pro-line)] bg-[color:var(--pro-paper)] px-4 py-2.5">
+   266→                  <span className="size-2.5 rounded-full bg-[#E8E4DC]" aria-hidden />
+   267→                  <span className="size-2.5 rounded-full bg-[#E8E4DC]" aria-hidden />
+   268→                  <span className="size-2.5 rounded-full bg-[#E8E4DC]" aria-hidden />
+   269→                  <span className="ml-2 text-[11.5px] font-semibold text-[color:var(--pro-muted)]">{tP('fnPreviewTag')}</span>
+   270→                </div>
+   271→                <div className="grid grid-cols-3 gap-2.5 p-4">
+   272→                  {[0, 1, 2].map((k) => (
+   273→                    <div key={k} className="rounded-xl border border-[color:var(--pro-line)] p-3">
+   274→                      <div className="flex items-center justify-between">
+   275→                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--pro-muted)]">
+   276→                          {k === 0 ? tLx('heroStat1') : k === 1 ? tP('benchCol3') : tP('heroStatC')}
+   277→                        </span>
+   278→                        <span className="pro-live-dot" aria-hidden />
+   279→                      </div>
+   280→                      <div className="pro-display mt-2 text-xl">
+   281→                        <CountUp value={k === 0 ? 1420 : k === 1 ? 31 : 94} suffix={k === 2 ? '%' : ''} />
+   282→                      </div>
+   283→                      <div className="mt-2.5 flex h-10 items-end gap-1" aria-hidden>
+   284→                        {[34, 58, 41, 72, 55, 88, 63, 47, 78, 52].map((h, j) => (
+   285→                          <span
+   286→                            key={j}
+   287→                            className="pro-bar w-full rounded-sm"
+   288→                            style={{ height: `${h}%`, background: k === 1 ? '#D9A08C66' : 'rgba(18,137,126,0.22)', animationDelay: `${j * 60}ms` }}
+   289→                          />
+   290→                        ))}
+   291→                      </div>
+   292→                    </div>
+   293→                  ))}
+   294→                </div>
+   295→                <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2">
+   296→                  {(fnOn ? [tP('fnMonA'), tP('fnMonB')] : [tP('fnActA'), tP('fnActB')]).map((f, k) => (
+   297→                    <div key={k} className="flex items-center gap-2.5 rounded-xl bg-[color:var(--pro-paper)] px-3.5 py-3 text-[12.5px] font-medium text-[color:var(--pro-ink)]/80">
+   298→                      <span className="pro-live-dot shrink-0" aria-hidden /> {f}
+   299→                    </div>
+   300→                  ))}
+   301→                </div>
+   302→              </div>
+   303→            </Reveal>
+   304→          </div>
+   305→        </div>
+   306→      </section>
+   307→
+   308→      {/* ================= ORBITAL PANEL ================= */}
+   309→      <section id="orbit" ref={orbitRef} className="scroll-mt-24 px-3 md:px-6">
+   310→        <Reveal>
+   311→          <div className="relative mx-auto w-full max-w-[1400px] overflow-hidden rounded-[2.5rem] bg-[#050508]">
+   312→            <div className="relative h-[460px] md:h-[560px]">
+   313→              {orbitVisible ? <EarthScene /> : (
+   314→                <div className="absolute inset-0 flex items-center justify-center">
+   315→                  <span className="text-[12px] font-semibold tracking-[0.2em] text-white/30">LOADING ORBIT…</span>
+   316→                </div>
+   317→              )}
+   318→              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center pt-14">
+   319→                <div className="max-w-md px-6 text-center">
+   320→                  <span className="pro-eyebrow !text-cyan-300">{tP('orbitKicker')}</span>
+   321→                  <h2 className="pro-display mt-3 text-2xl text-white md:text-[2rem]">{tP('orbitTitle')}</h2>
+   322→                  <p className="mt-3 text-[13.5px] leading-relaxed text-white/60">{tP('orbitBody')}</p>
+   323→                </div>
+   324→              </div>
+   325→              <span className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[11.5px] font-semibold text-white/70 backdrop-blur">
+   326→                {tP('orbitHint')}
+   327→              </span>
+   328→            </div>
+   329→          </div>
+   330→        </Reveal>
+   331→      </section>
+   332→
+   333→      {/* ================= ROLE CARDS — WIRED ================= */}
+   334→      <section id="roles" className="scroll-mt-24 py-16 md:py-24">
+   335→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   336→          <SectionHead kicker={tLx('ftKicker')} title={tLx('ftTitle')} sub={tP('pubRoleLead')} />
+   337→          <Reveal delay={0.06}><p className="mt-2 flex items-center gap-2 text-[12.5px] font-medium text-[color:var(--pro-muted)]">
+   338→            <MousePointerClick className="size-4" aria-hidden /> {tP('pubRoleHint')}
+   339→          </p></Reveal>
+   340→          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   341→            {ROLES.map((r, i) => {
+   342→              const Icon = r.icon;
+   343→              const busy = entering === r.key;
+   344→              return (
+   345→                <Reveal key={r.key} delay={i * 0.05}>
+   346→                  <button
+   347→                    type="button"
+   348→                    onClick={() => openRole(r)}
+   349→                    disabled={entering !== null}
+   350→                    className="pro-card group flex w-full flex-col p-6 text-left disabled:cursor-wait"
+   351→                  >
+   352→                    <div className="flex items-center justify-between">
+   353→                      <span className="flex size-12 items-center justify-center rounded-2xl" style={{ background: `${r.accent}14`, color: r.accent }}>
+   354→                        <Icon className="size-5.5" aria-hidden />
+   355→                      </span>
+   356→                      <ArrowUpRight className="size-5 text-[color:var(--pro-muted)] transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[color:var(--pro-ink)]" aria-hidden />
+   357→                    </div>
+   358→                    <div className="mt-4 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: r.accent }}>
+   359→                      {tPortal(`role.${r.key}` as 'role.citizen')}
+   360→                    </div>
+   361→                    <h3 className="pro-display mt-1.5 text-[1.3rem] leading-snug">
+   362→                      {tPortal(`${r.key}.title` as 'citizen.title')}
+   363→                    </h3>
+   364→                    <p className="mt-2 flex-1 text-[13.5px] leading-relaxed text-[color:var(--pro-muted)] line-clamp-3">
+   365→                      {tPortal(`${r.key}.sub` as 'citizen.sub')}
+   366→                    </p>
+   367→                    <span className="mt-5 inline-flex items-center gap-2 text-[13.5px] font-semibold" style={{ color: r.accent }}>
+   368→                      {busy ? (
+   369→                        <><Loader2 className="size-4 animate-spin" aria-hidden /> {tLx('roleEntering')}</>
+   370→                      ) : (
+   371→                        <>{tP('rlKicker')} <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden /></>
+   372→                      )}
+   373→                    </span>
+   374→                  </button>
+   375→                </Reveal>
+   376→              );
+   377→            })}
+   378→          </div>
+   379→          {err && (
+   380→            <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] font-medium text-red-700">
+   381→              {err}
+   382→            </p>
+   383→          )}
+   384→        </div>
+   385→      </section>
+   386→
+   387→      {/* ================= WORKFLOW TABS ================= */}
+   388→      <section id="loop" className="pro-band scroll-mt-24 border-y border-[color:var(--pro-line)] py-16 md:py-24">
+   389→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   390→          <SectionHead kicker={tP('wfKicker')} title={tP('wfTitle')} />
+   391→          <Reveal delay={0.1} className="mt-7">
+   392→            <PillTabs
+   393→              idBase="pub-wf"
+   394→              tabs={wfData.map((w, i) => ({ key: String(i), label: w.tab }))}
+   395→              active={wfTab}
+   396→              onChange={setWfTab}
+   397→            />
+   398→          </Reveal>
+   399→          <div className="mt-8 grid items-center gap-8 lg:grid-cols-2">
+   400→            <AnimatePresence mode="wait">
+   401→              <motion.div
+   402→                key={wfTab}
+   403→                initial={{ opacity: 0, x: -18 }}
+   404→                animate={{ opacity: 1, x: 0 }}
+   405→                exit={{ opacity: 0, x: 14 }}
+   406→                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+   407→              >
+   408→                <span className="pro-display text-[13px] font-bold uppercase tracking-[0.2em] text-[color:var(--pro-accent-ink)]">
+   409→                  {String(Number(wfTab) + 1).padStart(2, '0')} — {wf.tab}
+   410→                </span>
+   411→                <h3 className="pro-display mt-3 text-2xl md:text-[1.8rem]">{wf.title}</h3>
+   412→                <p className="pro-lead mt-4">{wf.body}</p>
+   413→                <button type="button" onClick={() => setView('signup')} className="pro-btn pro-btn-primary mt-7">
+   414→                  {tP('wfCta')} <ArrowUpRight className="size-4" aria-hidden />
+   415→                </button>
+   416→              </motion.div>
+   417→            </AnimatePresence>
+   418→            <Reveal delay={0.1}>
+   419→              <div className="pro-img aspect-[16/10] w-full">
+   420→                <AnimatePresence mode="wait">
+   421→                  <motion.img
+   422→                    key={wf.img}
+   423→                    src={wf.img}
+   424→                    alt={wf.imgTag}
+   425→                    initial={reduced ? false : { opacity: 0, scale: 1.05 }}
+   426→                    animate={{ opacity: 1, scale: 1 }}
+   427→                    exit={{ opacity: 0 }}
+   428→                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+   429→                    className="absolute inset-0 h-full w-full object-cover"
+   430→                  />
+   431→                </AnimatePresence>
+   432→                <span className="pro-img-tag">{wf.imgTag}</span>
+   433→              </div>
+   434→            </Reveal>
+   435→          </div>
+   436→        </div>
+   437→      </section>
+   438→
+   439→      {/* ================= BENCHMARK ================= */}
+   440→      <section className="scroll-mt-24 py-16 md:py-24">
+   441→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   442→          <SectionHead kicker={tP('benchKicker')} title={tP('benchTitle')} sub={tP('benchSub')} />
+   443→          <div className="mt-9 grid gap-4 md:grid-cols-2">
+   444→            {bench.map((b, i) => (
+   445→              <BenchRow
+   446→                key={b.label}
+   447→                label={b.label}
+   448→                unit={b.unit}
+   449→                before={Number(b.before)}
+   450→                after={Number(b.after)}
+   451→                delay={i * 0.06}
+   452→                accent="#12897E"
+   453→              />
+   454→            ))}
+   455→          </div>
+   456→          <Reveal delay={0.1} className="mt-10">
+   457→            <h3 className="pro-display text-xl md:text-2xl">{tP('benchTimelineTitle')}</h3>
+   458→          </Reveal>
+   459→          <div className="mt-6">
+   460→            {timeline.map((item, i) => (
+   461→              <Reveal key={item.when} delay={i * 0.05}>
+   462→                <div className="relative grid grid-cols-[112px_1fr] gap-4 border-l border-[color:var(--pro-line)] py-4 pl-6 md:grid-cols-[140px_1fr]">
+   463→                  <span
+   464→                    className="absolute -left-[5px] top-7 size-2.5 rounded-full bg-[color:var(--pro-accent)] ring-4 ring-[color:var(--pro-paper)]"
+   465→                    aria-hidden
+   466→                  />
+   467→                  <span className="pt-1 text-[12px] font-bold uppercase tracking-[0.12em] text-[color:var(--pro-accent-ink)]">{item.when}</span>
+   468→                  <span className="text-[14.5px] leading-relaxed text-[color:var(--pro-ink)]/85">{item.what}</span>
+   469→                </div>
+   470→              </Reveal>
+   471→            ))}
+   472→          </div>
+   473→          <Reveal delay={0.1}><p className="mt-4 text-[12px] italic text-[color:var(--pro-muted)]">{tP('benchNote')}</p></Reveal>
+   474→        </div>
+   475→      </section>
+   476→
+   477→      {/* ================= STORIES ================= */}
+   478→      <section className="pro-band border-y border-[color:var(--pro-line)] py-16 md:py-24">
+   479→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   480→          <SectionHead kicker={tP('storyKicker')} title={tP('storyTitle')} />
+   481→          <Reveal delay={0.1} className="mt-8"><Stories t={(k) => tP(k as 'story1')} /></Reveal>
+   482→        </div>
+   483→      </section>
+   484→
+   485→      {/* ================= PLANS ================= */}
+   486→      <section id="plans" className="scroll-mt-24 py-16 md:py-24">
+   487→        <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+   488→          <SectionHead kicker={tP('planKicker')} title={tP('planTitle')} sub={tP('planSub')} center />
+   489→          <div className="mt-10 grid gap-5 md:grid-cols-3">
+   490→            {plans.map((plan, i) => (
+   491→              <Reveal key={plan.name} delay={i * 0.08}>
+   492→                <div className={cn('pro-card relative flex h-full flex-col p-7', plan.hot && 'border-2 !border-[color:var(--pro-accent)]')}>
+   493→                  {plan.hot && (
+   494→                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[color:var(--pro-accent)] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-white">
+   495→                      {tP('plan2Tag')}
+   496→                    </span>
+   497→                  )}
+   498→                  <div className="text-[13px] font-bold uppercase tracking-[0.14em] text-[color:var(--pro-muted)]">{plan.name}</div>
+   499→                  <div className="mt-3 flex items-baseline gap-2">
+   500→                    <span className="pro-display text-[2.2rem]">{plan.price}</span>
+   501→                    <span className="text-[12.5px] text-[color:var(--pro-muted)]">/ {plan.per}</span>
+   502→                  </div>
+   503→                  <p className="pro-lead mt-3 text-[14px]">{plan.desc}</p>
+   504→                  <ul className="mt-5 flex-1 space-y-2.5">
+   505→                    {plan.feats.map((f) => (
+   506→                      <li key={f} className="flex items-start gap-2.5 text-[13.5px] font-medium text-[color:var(--pro-ink)]/85">
+   507→                        <Check className="mt-0.5 size-4 shrink-0 text-[color:var(--pro-accent)]" aria-hidden /> {f}
+   508→                      </li>
+   509→                    ))}
+   510→                  </ul>
+   511→                  <button
+   512→                    type="button"
+   513→                    onClick={() => setView('signup')}
+   514→                    className={cn('pro-btn mt-7 w-full', plan.hot ? 'pro-btn-accent' : 'pro-btn-ghost')}
+   515→                  >
+   516→                    {tP('planCta')}
+   517→                  </button>
+   518→                </div>
+   519→              </Reveal>
+   520→            ))}
+   521→          </div>
+   522→        </div>
+   523→      </section>
+   524→
+   525→      {/* ================= FAQ ================= */}
+   526→      <section id="faq" className="pro-band scroll-mt-24 border-y border-[color:var(--pro-line)] py-16 md:py-24">
+   527→        <div className="mx-auto grid w-full max-w-6xl gap-10 px-5 md:px-8 lg:grid-cols-[0.9fr_1.4fr]">
+   528→          <SectionHead kicker={tP('faqKicker')} title={tP('faqTitle')} />
+   529→          <Reveal delay={0.08}><Faq items={faqItems} /></Reveal>
+   530→        </div>
+   531→      </section>
+   532→
+   533→      {/* ================= CLOSING CTA ================= */}
+   534→      <section className="relative overflow-hidden py-20 md:py-28">
+   535→        <div className="absolute inset-3 overflow-hidden rounded-[2.5rem] bg-[#0D1713] md:inset-6">
+   536→          <DotField density={34} color="rgba(255,255,255,0.14)" accent="rgba(18,137,126,0.6)" />
+   537→          <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_50%_110%,rgba(0,0,0,0.55),transparent)]" aria-hidden />
+   538→        </div>
+   539→        <div className="relative mx-auto w-full max-w-4xl px-5 text-center md:px-8">
+   540→          <Reveal>
+   541→            <h2 className="pro-display text-3xl text-white md:text-[3rem]">{tP('ctaTitle')}</h2>
+   542→          </Reveal>
+   543→          <Reveal delay={0.1}>
+   544→            <p className="pro-lead mx-auto mt-5 max-w-xl text-white/70">{tP('ctaSub')}</p>
+   545→          </Reveal>
+   546→          <Reveal delay={0.18} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+   547→            <button type="button" onClick={() => setView('signup')} className="pro-btn pro-btn-accent">
+   548→              {tP('ctaBtn')} <ArrowRight className="size-4" aria-hidden />
+   549→            </button>
+   550→            <button
+   551→              type="button"
+   552→              onClick={() => document.getElementById('roles')?.scrollIntoView({ behavior: 'smooth' })}
+   553→              className="pro-btn h-[46px] border border-white/25 text-white hover:bg-white/10"
+   554→            >
+   555→              {tP('ctaBtn2')}
+   556→            </button>
+   557→          </Reveal>
+   558→          <Reveal delay={0.24} className="mt-14">
+   559→            <div className="flex items-end justify-center gap-4 md:gap-6" aria-hidden>
+   560→              {['/images/landing/monsoon-2.jpg', '/images/landing/river-city-3.jpg', '/images/landing/rescue-1.jpg'].map((src, i) => (
+   561→                <motion.div
+   562→                  key={src}
+   563→                  className="pro-helix-item w-32 md:w-52"
+   564→                  initial={reduced ? false : { opacity: 0, y: 40, rotate: i === 1 ? 0 : i === 0 ? -4 : 4 }}
+   565→                  whileInView={{ opacity: 1, y: 0, rotate: i === 1 ? 0 : i === 0 ? -4 : 4 }}
+   566→                  viewport={{ once: true }}
+   567→                  transition={{ duration: 0.8, delay: 0.15 * i, ease: [0.22, 1, 0.36, 1] }}
+   568→                >
+   569→                  { }
+   570→                  <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
+   571→                </motion.div>
+   572→              ))}
+   573→            </div>
+   574→          </Reveal>
+   575→          <Reveal delay={0.3} className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+   576→            {[tP('ctaTag1'), tP('ctaTag2'), tP('ctaTag3')].map((tag) => (
+   577→              <span key={tag} className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-[12px] font-semibold text-white/85 backdrop-blur">
+   578→                {tag}
+   579→              </span>
+   580→            ))}
+   581→          </Reveal>
+   582→        </div>
+   583→      </section>
+   584→
+   585→      <ProFooter
+   586→        note={tLx('heroSub')}
+   587→        columns={[
+   588→          {
+   589→            title: tLx('ftKicker'),
+   590→            links: ROLES.slice(0, 4).map((r) => ({
+   591→              label: tPortal(`role.${r.key}` as 'role.citizen'),
+   592→              onClick: () => openRole(r),
+   593→            })),
+   594→          },
+   595→          {
+   596→            title: tP('planKicker'),
+   597→            links: [
+   598→              { label: tP('plan1Name'), onClick: () => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' }) },
+   599→              { label: tP('plan2Name'), onClick: () => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' }) },
+   600→              { label: tP('plan3Name'), onClick: () => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' }) },
+   601→            ],
+   602→          },
+   603→          {
+   604→            title: tP('faqKicker'),
+   605→            links: [
+   606→              { label: tP('faq1Q'), onClick: () => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }) },
+   607→              { label: tLx('heroCta'), onClick: () => setView('signup') },
+   608→              { label: tP('heroCta2'), onClick: () => setView('publicMap') },
+   609→            ],
+   610→          },
+   611→        ]}
+   612→      />
+   613→    </div>
+   614→  );
+   615→}
+   616→

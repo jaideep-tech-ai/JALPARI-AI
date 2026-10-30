@@ -1,0 +1,834 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { useTranslations } from 'next-intl';
+     5→import { motion } from 'framer-motion';
+     6→import { HydroStage } from '@/components/auth/hydro-stage';
+     7→import { useAppStore } from '@/lib/store';
+     8→import { api } from '@/lib/client-api';
+     9→import { Button } from '@/components/ui/button';
+    10→import { Input } from '@/components/ui/input';
+    11→import { Label } from '@/components/ui/label';
+    12→import { Checkbox } from '@/components/ui/checkbox';
+    13→import { Card, CardContent } from '@/components/ui/card';
+    14→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+    15→import { Switch } from '@/components/ui/switch';
+    16→import { Alert, AlertDescription } from '@/components/ui/alert';
+    17→import { CITIES } from '@/lib/types';
+    18→import { toast } from '@/hooks/use-toast';
+    19→import {
+    20→  Eye, EyeOff, ShieldCheck, User, Building2, Siren, HardHat, Cog, BarChart3,
+    21→  Crown, CheckCircle2, Info, AlertCircle, Loader2, Droplets, ArrowRight,
+    22→} from 'lucide-react';
+    23→
+    24→// ============ Shared layout ============
+    25→function AuthShell({ children, title, sub }: { children: React.ReactNode; title: string; sub?: string }) {
+    26→  const setView = useAppStore((s) => s.setView);
+    27→  return (
+    28→    <div className="dark jg-hero-bg flex min-h-screen flex-col items-center justify-center px-4 py-10">
+    29→      <button className="mb-6 flex items-center gap-2.5" onClick={() => setView('landing')}>
+    30→        <img src="/logo.svg" alt="JALGUARD" className="size-10 drop-shadow-[0_0_14px_rgba(0,242,254,0.45)]" />
+    31→        <span className="text-xl font-extrabold tracking-[0.08em] text-white">
+    32→          JAL<span className="jg-gradient-text">GUARD</span>
+    33→        </span>
+    34→      </button>
+    35→      <motion.div
+    36→        initial={{ opacity: 0, y: 18 }}
+    37→        animate={{ opacity: 1, y: 0 }}
+    38→        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    39→        className="w-full max-w-md"
+    40→      >
+    41→        <Card className="hc-glass-console border-white/10 bg-[#0E1626]/90 shadow-2xl shadow-black/50">
+    42→          <CardContent className="p-6 md:p-7">
+    43→            <h1 className="text-xl font-bold text-white">{title}</h1>
+    44→            {sub && <p className="mt-1 text-[13px] leading-relaxed text-slate-400">{sub}</p>}
+    45→            <div className="mt-5">{children}</div>
+    46→          </CardContent>
+    47→        </Card>
+    48→      </motion.div>
+    49→    </div>
+    50→  );
+    51→}
+    52→
+    53→function ErrAlert({ msg }: { msg: string }) {
+    54→  if (!msg) return null;
+    55→  return (
+    56→    <Alert variant="destructive" className="border-red-500/40 bg-red-500/10 text-red-300">
+    57→      <AlertCircle className="size-4" />
+    58→      <AlertDescription className="text-[13px]">{msg}</AlertDescription>
+    59→    </Alert>
+    60→  );
+    61→}
+    62→
+    63→function SubmitBtn({ loading, children, disabled, onClick }: { loading: boolean; children: React.ReactNode; disabled?: boolean; onClick?: () => void }) {
+    64→  return (
+    65→    <Button
+    66→      type={onClick ? 'button' : 'submit'}
+    67→      onClick={onClick}
+    68→      disabled={loading || disabled}
+    69→      className="hc-cta h-11 w-full"
+    70→    >
+    71→      {loading && <Loader2 className="size-4 animate-spin" />}
+    72→      {children}
+    73→    </Button>
+    74→  );
+    75→}
+    76→
+    77→const inputCls = 'h-10 border-white/15 bg-white/5 text-white placeholder:text-slate-500';
+    78→
+    79→// ============ Password field with strength + visibility ============
+    80→function PasswordField({
+    81→  value, onChange, placeholder, show, setShow, autoComplete,
+    82→}: {
+    83→  value: string; onChange: (v: string) => void; placeholder: string;
+    84→  show: boolean; setShow: (v: boolean) => void; autoComplete?: string;
+    85→}) {
+    86→  const t = useTranslations('auth');
+    87→  const strength = value.length >= 12 && /[A-Z]/.test(value) && /[0-9]/.test(value) ? 4
+    88→    : value.length >= 8 && /[A-Za-z]/.test(value) && /[0-9]/.test(value) ? 3
+    89→    : value.length >= 8 ? 2 : value.length >= 4 ? 1 : 0;
+    90→  const labels = [t('pwdWeak'), t('pwdWeak'), t('pwdFair'), t('pwdGood'), t('pwdStrong')];
+    91→  const colors = ['bg-red-500', 'bg-red-500', 'bg-amber-500', 'bg-sky-500', 'bg-[#10D9A0]'];
+    92→  return (
+    93→    <div>
+    94→      <div className="hc-field">
+    95→        <input
+    96→          type={show ? 'text' : 'password'}
+    97→          value={value}
+    98→          onChange={(e) => onChange(e.target.value)}
+    99→          placeholder=" "
+   100→          autoComplete={autoComplete}
+   101→          className="hc-input pr-11"
+   102→        />
+   103→        <label className="hc-label">{placeholder}</label>
+   104→        <button
+   105→          type="button"
+   106→          onClick={() => setShow(!show)}
+   107→          className="absolute right-3 top-[15px] text-slate-500 transition-colors hover:text-white"
+   108→          aria-label={show ? t('hidePassword') : t('showPassword')}
+   109→        >
+   110→          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+   111→        </button>
+   112→      </div>
+   113→      {value && (
+   114→        <div className="mt-1.5 flex items-center gap-2">
+   115→          <div className="flex gap-1">
+   116→            {[1, 2, 3, 4].map((i) => (
+   117→              <span key={i} className={`h-1 w-8 rounded-full ${i <= strength ? colors[strength] : 'bg-white/10'}`} />
+   118→            ))}
+   119→          </div>
+   120→          <span className="text-[11px] text-slate-500">{labels[strength]}</span>
+   121→        </div>
+   122→      )}
+   123→    </div>
+   124→  );
+   125→}
+   126→
+   127→// ============ Cinematic split-screen shell (Midnight Hydro-Core) ============
+   128→const DEMO_ROLES = [
+   129→  { email: 'admin@jalguard.demo', label: 'Super Admin', glow: '#A78BFA' },
+   130→  { email: 'disaster@jalguard.demo', label: 'Disaster Mgmt', glow: '#FF4D5E' },
+   131→  { email: 'analyst@jalguard.demo', label: 'Analyst', glow: '#00F2FE' },
+   132→  { email: 'officer@jalguard.demo', label: 'Municipal', glow: '#10D9A0' },
+   133→  { email: 'field@jalguard.demo', label: 'Field Ops', glow: '#FFB224' },
+   134→  { email: 'citizen@jalguard.demo', label: 'Citizen', glow: '#4ADE80' },
+   135→];
+   136→
+   137→/** Capsule input with floating label + Electric Cyan neon focus ring. */
+   138→function HydroInput({
+   139→  id, label, type = 'text', value, onChange, autoComplete, required,
+   140→}: {
+   141→  id: string; label: string; type?: string; value: string;
+   142→  onChange: (v: string) => void; autoComplete?: string; required?: boolean;
+   143→}) {
+   144→  return (
+   145→    <div className="hc-field">
+   146→      <input
+   147→        id={id}
+   148→        type={type}
+   149→        value={value}
+   150→        onChange={(e) => onChange(e.target.value)}
+   151→        placeholder=" "
+   152→        required={required}
+   153→        autoComplete={autoComplete}
+   154→        className="hc-input"
+   155→      />
+   156→      <label htmlFor={id} className="hc-label">{label}</label>
+   157→    </div>
+   158→  );
+   159→}
+   160→
+   161→/** Sign In / Create Account segmented switch — 500ms fluid morph pill. */
+   162→function AuthTabs({ active }: { active: 'signin' | 'signup' }) {
+   163→  const t = useTranslations('auth');
+   164→  const setView = useAppStore((s) => s.setView);
+   165→  const tabs = [
+   166→    { key: 'signin' as const, label: t('signInCta') },
+   167→    { key: 'signup' as const, label: t('signUpCta') },
+   168→  ];
+   169→  return (
+   170→    <div className="relative grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1" role="tablist">
+   171→      {tabs.map((tab) => {
+   172→        const on = active === tab.key;
+   173→        return (
+   174→          <button
+   175→            key={tab.key}
+   176→            type="button"
+   177→            role="tab"
+   178→            aria-selected={on}
+   179→            onClick={() => { if (!on) setView(tab.key); }}
+   180→            className={`relative rounded-xl py-2.5 text-[13px] font-semibold transition-colors duration-500 ${on ? 'text-[#04121A]' : 'text-slate-400 hover:text-white'}`}
+   181→          >
+   182→            {on && (
+   183→              <motion.span
+   184→                layoutId="auth-tab-pill"
+   185→                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+   186→                className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00F2FE] to-[#059669] shadow-[0_0_24px_rgba(0,242,254,0.35)]"
+   187→              />
+   188→            )}
+   189→            <span className="relative z-10">{tab.label}</span>
+   190→          </button>
+   191→        );
+   192→      })}
+   193→    </div>
+   194→  );
+   195→}
+   196→
+   197→/** 50/50 horizontal split: Spline-ready hydro stage | glassmorphic console. */
+   198→function AuthSplit({ active, title, sub, children }: { active: 'signin' | 'signup'; title: string; sub: string; children: React.ReactNode }) {
+   199→  const tn = useTranslations('nav');
+   200→  const setView = useAppStore((s) => s.setView);
+   201→  return (
+   202→    <div className="dark relative flex min-h-screen bg-[#060A13] text-white">
+   203→      {/* BACKGROUND — full-screen interactive hydro stage (fixed, sits under everything) */}
+   204→      <HydroStage />
+   205→
+   206→      {/* RIGHT — premium glassmorphic console floating over the full-screen stage */}
+   207→      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center overflow-y-auto px-4 py-10 lg:ml-auto lg:w-1/2">
+   208→        <button
+   209→          onClick={() => setView('landing')}
+   210→          className="absolute right-5 top-5 z-20 text-[12px] text-slate-500 transition-colors hover:text-white"
+   211→        >
+   212→          ← {tn('platform')}
+   213→        </button>
+   214→
+   215→        <motion.div
+   216→          key={active}
+   217→          initial={{ opacity: 0, y: 26, filter: 'blur(6px)' }}
+   218→          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+   219→          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+   220→          className="relative z-10 w-full max-w-[460px]"
+   221→        >
+   222→          <div className="hc-glass-console p-7 md:p-10">
+   223→            <div className="flex items-center gap-3">
+   224→              <img src="/logo.svg" alt="" className="size-11 drop-shadow-[0_0_16px_rgba(0,242,254,0.5)]" />
+   225→              <div>
+   226→                <div className="text-lg font-extrabold tracking-[0.08em]">
+   227→                  JAL<span className="bg-gradient-to-r from-[#00F2FE] to-[#10D9A0] bg-clip-text text-transparent">GUARD</span>
+   228→                </div>
+   229→                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">Hydro Resilience OS</div>
+   230→              </div>
+   231→            </div>
+   232→
+   233→            <h1 className="mt-6 font-display text-[26px] font-bold leading-tight text-white">{title}</h1>
+   234→            <p className="mt-1 text-[13px] leading-relaxed text-slate-400">{sub}</p>
+   235→
+   236→            <div className="mt-5">
+   237→              <AuthTabs active={active} />
+   238→            </div>
+   239→
+   240→            <div className="mt-6">{children}</div>
+   241→          </div>
+   242→        </motion.div>
+   243→      </div>
+   244→    </div>
+   245→  );
+   246→}
+   247→
+   248→// ============ Sign in ============
+   249→export function SignInScreen() {
+   250→  const t = useTranslations('auth');
+   251→  const { setView, setUser, setAppPage, setPending } = useAppStore();
+   252→  const [email, setEmail] = useState('');
+   253→  const [password, setPassword] = useState('');
+   254→  const [show, setShow] = useState(false);
+   255→  const [loading, setLoading] = useState(false);
+   256→  const [err, setErr] = useState('');
+   257→
+   258→  function routeUser(u: { emailVerified: boolean; role: string | null; onboarded: boolean; mustChangePassword: boolean }) {
+   259→    if (u.mustChangePassword) { setView('app'); return; }
+   260→    if (!u.emailVerified) { setView('verify'); return; }
+   261→    if (u.role === null) { setView('roleSelect'); return; }
+   262→    if (!u.onboarded) { setView('onboarding'); return; }
+   263→    setAppPage('portal'); // role-specific landing
+   264→    setView('app');
+   265→  }
+   266→
+   267→  async function submit(e: React.FormEvent) {
+   268→    e.preventDefault();
+   269→    setErr('');
+   270→    setLoading(true);
+   271→    try {
+   272→      const res = await api<{ ok: boolean; user: { emailVerified: boolean; role: string | null; onboarded: boolean; mustChangePassword: boolean } }>(
+   273→        '/api/auth', { body: { action: 'login', email, password } }
+   274→      );
+   275→      const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
+   276→      setUser(session.user);
+   277→      setPending({ email: '', token: '', role: null });
+   278→      routeUser(res.user);
+   279→    } catch (e2) {
+   280→      setErr((e2 as Error).message);
+   281→    } finally {
+   282→      setLoading(false);
+   283→    }
+   284→  }
+   285→
+   286→  async function demoLogin(em: string) {
+   287→    setLoading(true);
+   288→    setErr('');
+   289→    try {
+   290→      await api('/api/auth', { body: { action: 'login', email: em, password: 'Demo#Pass1' } });
+   291→      const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
+   292→      setUser(session.user);
+   293→      setAppPage('portal');
+   294→      setView('app');
+   295→    } catch (e2) {
+   296→      setErr((e2 as Error).message);
+   297→    } finally {
+   298→      setLoading(false);
+   299→    }
+   300→  }
+   301→
+   302→  return (
+   303→    <AuthSplit active="signin" title={t('signInTitle')} sub={t('signInSub')}>
+   304→      <form onSubmit={submit} className="space-y-4">
+   305→        <ErrAlert msg={err} />
+   306→        <HydroInput id="si-email" label={t('email')} type="email" value={email} onChange={setEmail} autoComplete="email" required />
+   307→        <div className="space-y-1.5">
+   308→          <div className="flex items-center justify-between">
+   309→            <Label htmlFor="si-pwd" className="text-[12.5px] text-slate-400">{t('password')}</Label>
+   310→            <button type="button" className="text-xs font-medium text-[#00F2FE] hover:underline" onClick={() => setView('forgot')}>
+   311→              {t('forgot')}
+   312→            </button>
+   313→          </div>
+   314→          <PasswordField value={password} onChange={setPassword} placeholder={t('password')} show={show} setShow={setShow} autoComplete="current-password" />
+   315→        </div>
+   316→        <SubmitBtn loading={loading}>{t('signInCta')}</SubmitBtn>
+   317→      </form>
+   318→
+   319→      {/* demo accounts quick-access matrix — role-semantic breathing glow */}
+   320→      <div className="mt-6">
+   321→        <div className="hc-divider mb-4" />
+   322→        <div className="flex items-center justify-between">
+   323→          <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.2em] text-slate-500">
+   324→            <Info className="size-3" />
+   325→            {t('demoAccounts')}
+   326→          </span>
+   327→          <span className="font-mono text-[10.5px] text-slate-500">Demo#Pass1</span>
+   328→        </div>
+   329→        <div className="mt-3 grid grid-cols-2 gap-2">
+   330→          {DEMO_ROLES.map((r) => (
+   331→            <button
+   332→              key={r.email}
+   333→              type="button"
+   334→              disabled={loading}
+   335→              style={{ ['--role-glow' as string]: r.glow }}
+   336→              className="hc-role group flex items-center gap-2 rounded-xl px-2.5 py-2 text-left disabled:opacity-50"
+   337→              onClick={() => demoLogin(r.email)}
+   338→            >
+   339→              <span className="hc-role-dot" />
+   340→              <span className="truncate text-[11.5px] font-medium text-slate-300 transition-colors duration-300 group-hover:text-white">{r.label}</span>
+   341→              <ArrowRight className="ml-auto size-3 shrink-0 -translate-x-1 text-slate-600 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+   342→            </button>
+   343→          ))}
+   344→        </div>
+   345→        <p className="mt-3 text-[11px] leading-relaxed text-slate-500">{t('demoAccountsHint')}</p>
+   346→      </div>
+   347→    </AuthSplit>
+   348→  );
+   349→}
+   350→
+   351→// ============ Sign up ============
+   352→export function SignUpScreen() {
+   353→  const t = useTranslations('auth');
+   354→  const tv = useTranslations('auth.validation');
+   355→  const { setView, setPending } = useAppStore();
+   356→  const [name, setName] = useState('');
+   357→  const [email, setEmail] = useState('');
+   358→  const [password, setPassword] = useState('');
+   359→  const [confirm, setConfirm] = useState('');
+   360→  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+   361→  const [organization, setOrganization] = useState('');
+   362→  const [terms, setTerms] = useState(false);
+   363→  const [show, setShow] = useState(false);
+   364→  const [loading, setLoading] = useState(false);
+   365→  const [err, setErr] = useState('');
+   366→
+   367→  async function submit(e: React.FormEvent) {
+   368→    e.preventDefault();
+   369→    setErr('');
+   370→    if (name.trim().length < 2) return setErr(tv('nameMin'));
+   371→    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr(tv('emailInvalid'));
+   372→    if (password.length < 8) return setErr(tv('pwdMin'));
+   373→    if (password !== confirm) return setErr(tv('pwdMatch'));
+   374→    if (!terms) return setErr(tv('termsRequired'));
+   375→    setLoading(true);
+   376→    try {
+   377→      const res = await api<{ demoVerifyToken: string }>('/api/auth', {
+   378→        body: { action: 'signup', name, email, password, language, organization },
+   379→      });
+   380→      setPending({ email, token: res.demoVerifyToken });
+   381→      setView('verify');
+   382→    } catch (e2) {
+   383→      setErr((e2 as Error).message);
+   384→    } finally {
+   385→      setLoading(false);
+   386→    }
+   387→  }
+   388→
+   389→  return (
+   390→    <AuthSplit active="signup" title={t('signUpTitle')} sub={t('signUpSub')}>
+   391→      <form onSubmit={submit} className="space-y-4">
+   392→        <ErrAlert msg={err} />
+   393→        <HydroInput id="su-name" label={t('fullName')} value={name} onChange={setName} autoComplete="name" required />
+   394→        <HydroInput id="su-email" label={t('email')} type="email" value={email} onChange={setEmail} autoComplete="email" required />
+   395→        <div className="grid gap-4 sm:grid-cols-2">
+   396→          <div className="space-y-1.5">
+   397→            <Label className="text-[12.5px] text-slate-400">{t('preferredLanguage')}</Label>
+   398→            <Select value={language} onValueChange={(v) => setLanguage(v as 'en' | 'hi')}>
+   399→              <SelectTrigger className={inputCls}><SelectValue /></SelectTrigger>
+   400→              <SelectContent>
+   401→                <SelectItem value="en">English</SelectItem>
+   402→                <SelectItem value="hi">हिन्दी</SelectItem>
+   403→              </SelectContent>
+   404→            </Select>
+   405→          </div>
+   406→          <div className="hc-field">
+   407→            <input
+   408→              id="su-org"
+   409→              value={organization}
+   410→              onChange={(e) => setOrganization(e.target.value)}
+   411→              placeholder=" "
+   412→              autoComplete="organization"
+   413→              className="hc-input"
+   414→            />
+   415→            <label htmlFor="su-org" className="hc-label">
+   416→              {t('organization')} · {t('optional')}
+   417→            </label>
+   418→          </div>
+   419→        </div>
+   420→        <PasswordField value={password} onChange={setPassword} placeholder={t('password')} show={show} setShow={setShow} autoComplete="new-password" />
+   421→        <HydroInput id="su-confirm" label={t('confirmPassword')} type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" required />
+   422→        <label className="flex items-start gap-2.5 text-[13px] text-slate-400">
+   423→          <Checkbox checked={terms} onCheckedChange={(v) => setTerms(v === true)} className="mt-0.5 border-white/30" />
+   424→          {t('terms')}
+   425→        </label>
+   426→        <SubmitBtn loading={loading}>{t('signUpCta')}</SubmitBtn>
+   427→      </form>
+   428→    </AuthSplit>
+   429→  );
+   430→}
+   431→
+   432→// ============ Email verify (demo-labelled) ============
+   433→export function VerifyScreen() {
+   434→  const t = useTranslations('auth');
+   435→  const { pendingEmail, pendingToken, user, setUser, setView } = useAppStore();
+   436→  const [loading, setLoading] = useState(false);
+   437→  const [err, setErr] = useState('');
+   438→  const emailShown = pendingEmail || user?.email || '';
+   439→  const canTokenVerify = !!pendingEmail && !!pendingToken;
+   440→  const canSelfVerify = !!user && !user.emailVerified;
+   441→
+   442→  async function verify() {
+   443→    setLoading(true);
+   444→    setErr('');
+   445→    try {
+   446→      if (canTokenVerify) {
+   447→        await api('/api/auth', { body: { action: 'verify', email: pendingEmail, token: pendingToken } });
+   448→        const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
+   449→        setUser(session.user);
+   450→      } else {
+   451→        const res = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth', { body: { action: 'verifySelf' } });
+   452→        setUser(res.user);
+   453→      }
+   454→      setView('roleSelect');
+   455→    } catch (e2) {
+   456→      setErr((e2 as Error).message);
+   457→    } finally {
+   458→      setLoading(false);
+   459→    }
+   460→  }
+   461→
+   462→  return (
+   463→    <AuthShell title={t('verifyTitle')} sub={t('verifySub')}>
+   464→      <div className="space-y-4">
+   465→        <ErrAlert msg={err} />
+   466→        <Alert className="border-sky-500/30 bg-sky-500/10 text-sky-300">
+   467→          <Info className="size-4" />
+   468→          <AlertDescription className="text-[12.5px] leading-relaxed">{t('verifyDemo')}</AlertDescription>
+   469→        </Alert>
+   470→        <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-[12px] text-slate-300">
+   471→          <div><span className="text-slate-500">{t('email')}:</span> <span className="font-mono">{emailShown || '—'}</span></div>
+   472→          <div className="mt-1"><span className="text-slate-500">Token:</span> <span className="font-mono break-all">{pendingToken ? pendingToken.slice(0, 8) + '…' : '—'}</span></div>
+   473→        </div>
+   474→        <SubmitBtn loading={loading} disabled={!canTokenVerify && !canSelfVerify} onClick={verify}>{t('verifyCta')}</SubmitBtn>
+   475→      </div>
+   476→    </AuthShell>
+   477→  );
+   478→}
+   479→
+   480→// ============ Forgot / Reset password ============
+   481→export function ForgotScreen() {
+   482→  const t = useTranslations('auth');
+   483→  const { setView, setPending, pendingEmail } = useAppStore();
+   484→  const [email, setEmail] = useState(pendingEmail);
+   485→  const [loading, setLoading] = useState(false);
+   486→  const [token, setToken] = useState('');
+   487→  const [err, setErr] = useState('');
+   488→  const [done, setDone] = useState(false);
+   489→
+   490→  async function submit(e: React.FormEvent) {
+   491→    e.preventDefault();
+   492→    setLoading(true);
+   493→    setErr('');
+   494→    try {
+   495→      const res = await api<{ demoResetToken?: string }>('/api/auth', { body: { action: 'forgot', email } });
+   496→      if (res.demoResetToken) {
+   497→        setToken(res.demoResetToken);
+   498→        setPending({ email, token: res.demoResetToken });
+   499→      }
+   500→      setDone(true);
+   501→    } catch (e2) {
+   502→      setErr((e2 as Error).message);
+   503→    } finally {
+   504→      setLoading(false);
+   505→    }
+   506→  }
+   507→
+   508→  return (
+   509→    <AuthShell title={t('resetTitle')} sub={t('resetSub')}>
+   510→      {done ? (
+   511→        <div className="space-y-4">
+   512→          <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+   513→            <CheckCircle2 className="size-4" />
+   514→            <AlertDescription className="text-[12.5px]">
+   515→              {t('verifyDemo')} {token && <span className="mt-1 block font-mono text-[11px] break-all">Token: {token}</span>}
+   516→            </AlertDescription>
+   517→          </Alert>
+   518→          <Button
+   519→            className="h-10 w-full bg-emerald-500 font-semibold text-[#06251B] hover:bg-emerald-400"
+   520→            onClick={() => setView('reset')}
+   521→          >
+   522→            {t('resetCta')}
+   523→          </Button>
+   524→          <p className="text-center">
+   525→            <button className="text-[13px] text-emerald-400 hover:underline" onClick={() => setView('signin')}>
+   526→              ← {t('signInCta')}
+   527→            </button>
+   528→          </p>
+   529→        </div>
+   530→      ) : (
+   531→        <form onSubmit={submit} className="space-y-4">
+   532→          <ErrAlert msg={err} />
+   533→          <div className="space-y-1.5">
+   534→            <Label htmlFor="fp-email" className="text-slate-300">{t('email')}</Label>
+   535→            <Input id="fp-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+   536→          </div>
+   537→          <SubmitBtn loading={loading}>{t('sendReset')}</SubmitBtn>
+   538→          <p className="text-center">
+   539→            <button type="button" className="text-[13px] text-emerald-400 hover:underline" onClick={() => setView('signin')}>
+   540→              ← {t('signInCta')}
+   541→            </button>
+   542→          </p>
+   543→        </form>
+   544→      )}
+   545→    </AuthShell>
+   546→  );
+   547→}
+   548→
+   549→export function ResetScreen() {
+   550→  const t = useTranslations('auth');
+   551→  const { pendingEmail, pendingToken, setView } = useAppStore();
+   552→  const [email, setEmail] = useState(pendingEmail);
+   553→  const [token, setToken] = useState(pendingToken);
+   554→  const [password, setPassword] = useState('');
+   555→  const [show, setShow] = useState(false);
+   556→  const [loading, setLoading] = useState(false);
+   557→  const [err, setErr] = useState('');
+   558→  const [ok, setOk] = useState(false);
+   559→
+   560→  async function submit(e: React.FormEvent) {
+   561→    e.preventDefault();
+   562→    setLoading(true);
+   563→    setErr('');
+   564→    try {
+   565→      await api('/api/auth', { body: { action: 'reset', email, token, password } });
+   566→      setOk(true);
+   567→      setTimeout(() => setView('signin'), 1200);
+   568→    } catch (e2) {
+   569→      setErr((e2 as Error).message);
+   570→    } finally {
+   571→      setLoading(false);
+   572→    }
+   573→  }
+   574→
+   575→  return (
+   576→    <AuthShell title={t('resetTitle')}>
+   577→      <form onSubmit={submit} className="space-y-4">
+   578→        <ErrAlert msg={err} />
+   579→        {ok && (
+   580→          <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+   581→            <CheckCircle2 className="size-4" />
+   582→            <AlertDescription>{t('verified')}</AlertDescription>
+   583→          </Alert>
+   584→        )}
+   585→        <div className="space-y-1.5">
+   586→          <Label className="text-slate-300">{t('email')}</Label>
+   587→          <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+   588→        </div>
+   589→        <div className="space-y-1.5">
+   590→          <Label className="text-slate-300">Reset token</Label>
+   591→          <Input required value={token} onChange={(e) => setToken(e.target.value)} className={inputCls + ' font-mono text-xs'} />
+   592→        </div>
+   593→        <div className="space-y-1.5">
+   594→          <Label className="text-slate-300">{t('newPassword')}</Label>
+   595→          <PasswordField value={password} onChange={setPassword} placeholder="8+ characters" show={show} setShow={setShow} autoComplete="new-password" />
+   596→        </div>
+   597→        <SubmitBtn loading={loading}>{t('resetCta')}</SubmitBtn>
+   598→      </form>
+   599→    </AuthShell>
+   600→  );
+   601→}
+   602→
+   603→// ============ Role selection ============
+   604→const ROLE_META: { key: string; icon: typeof User; tint: string }[] = [
+   605→  { key: 'citizen', icon: User, tint: 'text-sky-400 bg-sky-500/10 border-sky-500/25' },
+   606→  { key: 'municipal', icon: Building2, tint: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/25' },
+   607→  { key: 'disaster', icon: Siren, tint: 'text-red-400 bg-red-500/10 border-red-500/25' },
+   608→  { key: 'field', icon: HardHat, tint: 'text-amber-400 bg-amber-500/10 border-amber-500/25' },
+   609→  { key: 'infra', icon: Cog, tint: 'text-violet-400 bg-violet-500/10 border-violet-500/25' },
+   610→  { key: 'analyst', icon: BarChart3, tint: 'text-teal-400 bg-teal-500/10 border-teal-500/25' },
+   611→  { key: 'org_admin', icon: ShieldCheck, tint: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/25' },
+   612→  { key: 'super_admin', icon: Crown, tint: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/25' },
+   613→];
+   614→
+   615→export function RoleSelectScreen() {
+   616→  const t = useTranslations('auth');
+   617→  const tr = useTranslations('roles');
+   618→  const { setUser, setView, setPending, pendingRole } = useAppStore();
+   619→  const [loadingRole, setLoadingRole] = useState<string | null>(null);
+   620→
+   621→  async function pick(role: string) {
+   622→    setLoadingRole(role);
+   623→    try {
+   624→      const res = await api<{ granted: boolean; pendingRole?: string; user: import('@/lib/types').SessionUser }>(
+   625→        '/api/auth', { body: { action: 'selectRole', requestedRole: role } }
+   626→      );
+   627→      setUser(res.user);
+   628→      if (res.granted) {
+   629→        setView('onboarding');
+   630→      } else {
+   631→        setPending({ role: res.pendingRole ?? role });
+   632→      }
+   633→    } catch (e) {
+   634→      toast({ title: (e as Error).message, variant: 'destructive' });
+   635→    } finally {
+   636→      setLoadingRole(null);
+   637→    }
+   638→  }
+   639→
+   640→  if (pendingRole) {
+   641→    return (
+   642→      <AuthShell title={t('rolePendingTitle')}>
+   643→        <div className="space-y-4">
+   644→          <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-200">
+   645→            <Info className="size-4" />
+   646→            <AlertDescription className="text-[13px] leading-relaxed">
+   647→              {t('rolePendingBody', { role: tr(pendingRole as 'municipal') })}
+   648→            </AlertDescription>
+   649→          </Alert>
+   650→          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+   651→            <div className="flex items-center gap-3">
+   652→              <span className="inline-flex size-2.5 animate-pulse rounded-full bg-amber-400" />
+   653→              <span className="text-[13px] font-medium text-slate-200">{tr('requestSent')} · {tr(pendingRole as 'municipal')}</span>
+   654→            </div>
+   655→            <p className="mt-2 text-[12px] leading-relaxed text-slate-400">
+   656→              An administrator reviews privileged-role requests on the server. Until approval, you keep standard citizen access.
+   657→            </p>
+   658→          </div>
+   659→          <Button
+   660→            className="h-10 w-full bg-emerald-500 font-semibold text-[#06251B] hover:bg-emerald-400"
+   661→            onClick={() => setView('onboarding')}
+   662→          >
+   663→            {t('continueAsCitizen')}
+   664→          </Button>
+   665→          <p className="text-center">
+   666→            <button className="text-[12px] text-slate-400 hover:underline" onClick={() => setView('signin')}>
+   667→              {t('goSignIn')}
+   668→            </button>
+   669→          </p>
+   670→        </div>
+   671→      </AuthShell>
+   672→    );
+   673→  }
+   674→
+   675→  return (
+   676→    <AuthShell title={t('roleTitle')} sub={t('roleSub')}>
+   677→      <div className="grid grid-cols-2 gap-2.5">
+   678→        {ROLE_META.map((r) => (
+   679→          <button
+   680→            key={r.key}
+   681→            disabled={loadingRole !== null}
+   682→            onClick={() => pick(r.key)}
+   683→            className="group rounded-xl border border-white/10 bg-white/5 p-3.5 text-left transition-all hover:border-emerald-500/50 hover:bg-white/10 disabled:opacity-50"
+   684→          >
+   685→            <div className={`inline-flex size-9 items-center justify-center rounded-lg border ${r.tint}`}>
+   686→              {loadingRole === r.key ? <Loader2 className="size-4 animate-spin" /> : <r.icon className="size-4" />}
+   687→            </div>
+   688→            <div className="mt-2.5 text-[13px] font-bold text-white">{tr(r.key as 'citizen')}</div>
+   689→            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-400">{tr((r.key + 'Desc') as 'citizenDesc')}</p>
+   690→          </button>
+   691→        ))}
+   692→      </div>
+   693→      <p className="mt-4 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-500">
+   694→        <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+   695→        {t('roleCitizenNote')}
+   696→      </p>
+   697→    </AuthShell>
+   698→  );
+   699→}
+   700→
+   701→// ============ Onboarding ============
+   702→export function OnboardingScreen() {
+   703→  const t = useTranslations('auth.onboarding');
+   704→  const { setUser, setView, locale, setLocale } = useAppStore();
+   705→  const [regionState, setRegionState] = useState('');
+   706→  const [regionCity, setRegionCity] = useState('');
+   707→  const [mapFirst, setMapFirst] = useState(true);
+   708→  const [notif, setNotif] = useState(true);
+   709→  const [loading, setLoading] = useState(false);
+   710→
+   711→  const states = Array.from(new Set(CITIES.map((c) => c.state)));
+   712→  const cities = CITIES.filter((c) => !regionState || c.state === regionState);
+   713→
+   714→  async function finish(skip: boolean) {
+   715→    setLoading(true);
+   716→    try {
+   717→      const res = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth', {
+   718→        body: skip
+   719→          ? { action: 'onboarding' }
+   720→          : {
+   721→              action: 'onboarding',
+   722→              language: locale,
+   723→              regionState,
+   724→              regionCity,
+   725→              notificationsEnabled: notif,
+   726→            },
+   727→      });
+   728→      setUser(res.user);
+   729→      setView('app');
+   730→    } catch {
+   731→      setView('app');
+   732→    } finally {
+   733→      setLoading(false);
+   734→    }
+   735→  }
+   736→
+   737→  return (
+   738→    <AuthShell title={t('title')} sub={t('sub')}>
+   739→      <div className="space-y-4">
+   740→        <div className="grid gap-4 sm:grid-cols-2">
+   741→          <div className="space-y-1.5">
+   742→            <Label className="text-slate-300">{t('regionLabel')}</Label>
+   743→            <Select value={regionState} onValueChange={(v) => { setRegionState(v); setRegionCity(''); }}>
+   744→              <SelectTrigger className={inputCls}><SelectValue placeholder="Select state" /></SelectTrigger>
+   745→              <SelectContent>
+   746→                {states.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+   747→              </SelectContent>
+   748→            </Select>
+   749→          </div>
+   750→          <div className="space-y-1.5">
+   751→            <Label className="text-slate-300">{t('cityLabel')}</Label>
+   752→            <Select value={regionCity} onValueChange={setRegionCity}>
+   753→              <SelectTrigger className={inputCls}><SelectValue placeholder="Select city" /></SelectTrigger>
+   754→              <SelectContent>
+   755→                {cities.map((c) => <SelectItem key={c.city} value={c.city}>{c.city}</SelectItem>)}
+   756→              </SelectContent>
+   757→            </Select>
+   758→          </div>
+   759→        </div>
+   760→        <div className="space-y-1.5">
+   761→          <Label className="text-slate-300">{t('dashPrefs')}</Label>
+   762→          <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5">
+   763→            <span className="text-[13px] text-slate-200">{mapFirst ? t('prefMap') : t('prefList')}</span>
+   764→            <Switch checked={mapFirst} onCheckedChange={setMapFirst} />
+   765→          </div>
+   766→        </div>
+   767→        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5">
+   768→          <span className="text-[13px] leading-snug text-slate-200">{t('notifPref')}</span>
+   769→          <Switch checked={notif} onCheckedChange={setNotif} />
+   770→        </div>
+   771→        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5">
+   772→          <span className="text-[13px] text-slate-200">English / हिन्दी</span>
+   773→          <Button variant="ghost" size="sm" className="h-7 text-slate-200" onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}>
+   774→            {locale === 'en' ? 'EN' : 'हिन्दी'}
+   775→          </Button>
+   776→        </div>
+   777→        <div className="grid grid-cols-[1fr_auto] gap-2 pt-1">
+   778→          <SubmitBtn loading={loading} onClick={() => finish(false)}>{t('finish')}</SubmitBtn>
+   779→          <Button variant="ghost" className="h-10 text-slate-400 hover:text-white" disabled={loading} onClick={() => finish(true)}>
+   780→            {t('skip')}
+   781→          </Button>
+   782→        </div>
+   783→      </div>
+   784→    </AuthShell>
+   785→  );
+   786→}
+   787→
+   788→// ============ Forced password change gate ============
+   789→export function ChangePasswordGate() {
+   790→  const t = useTranslations('auth.changePassword');
+   791→  const { user, setUser } = useAppStore();
+   792→  const [current, setCurrent] = useState('');
+   793→  const [password, setPassword] = useState('');
+   794→  const [show, setShow] = useState(false);
+   795→  const [loading, setLoading] = useState(false);
+   796→  const [err, setErr] = useState('');
+   797→
+   798→  async function submit(e: React.FormEvent) {
+   799→    e.preventDefault();
+   800→    setLoading(true);
+   801→    setErr('');
+   802→    try {
+   803→      await api('/api/auth', { body: { action: 'changePassword', currentPassword: current, password } });
+   804→      const session = await api<{ user: import('@/lib/types').SessionUser }>('/api/auth');
+   805→      setUser(session.user);
+   806→    } catch (e2) {
+   807→      setErr((e2 as Error).message);
+   808→    } finally {
+   809→      setLoading(false);
+   810→    }
+   811→  }
+   812→
+   813→  return (
+   814→    <AuthShell title={t('title')} sub={t('sub')}>
+   815→      <form onSubmit={submit} className="space-y-4">
+   816→        <ErrAlert msg={err} />
+   817→        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-300">
+   818→          <Droplets className="size-3.5 shrink-0" />
+   819→          <span className="font-mono">{user?.email}</span>
+   820→        </div>
+   821→        <div className="space-y-1.5">
+   822→          <Label className="text-slate-300">{t('current')}</Label>
+   823→          <Input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} className={inputCls} autoComplete="current-password" />
+   824→        </div>
+   825→        <div className="space-y-1.5">
+   826→          <Label className="text-slate-300">{t('newPassword')}</Label>
+   827→          <PasswordField value={password} onChange={setPassword} placeholder="8+ characters" show={show} setShow={setShow} autoComplete="new-password" />
+   828→        </div>
+   829→        <SubmitBtn loading={loading}>{t('cta')}</SubmitBtn>
+   830→      </form>
+   831→    </AuthShell>
+   832→  );
+   833→}
+   834→

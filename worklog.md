@@ -230,3 +230,23 @@ Stage Summary:
 - User ka diya hua logo safe hai: /home/z/my-project/upload/tmp_3031f8.png (water drop shield)
 - User ke reference screenshots upload/ mein safe hain (Fixly Operations Center template, Instagram design tips reel, aur 5173 template wale screenshots)
 - Agla step: user fresh project ka instruction dega
+
+---
+Task ID: W-2
+Agent: main (Z.ai)
+Task: User request - "now restore the website again and start now" (delete ke baad wapas chalu karo)
+
+Work Log:
+- Platform snapshot ne saare files auto-restore kiye (src, public, package.json, db, prisma, upload/, download/) - git HEAD deletion-state pe tha lekin working tree restored mila
+- bun install - 914 packages OK
+- Worklog Task 9 se confirm: Fixly Operations Center, logo, NaN fix, mobile responsive pehle se complete aur verified tha
+- Dev server OOM issue dobara mila (4GB cgroup, Turbopack + Chrome) - solution: bun run build (clean pass) + standalone server
+- ROOT CAUSE FIX: background server har naye tool call pe mar raha tha (process group kill) - setsid se fully detached start kiya, ab survival cross-call verified
+- agent-browser verification: landing (WebGL Earth, JALGUARD logo, EN/Hindi toggle, SOS) OK; Municipal demo login OK; Operations Center render OK (Needs Attention banner, 5 stat cards, high-priority issues, live map)
+- Console: 0 errors, 0 NaN
+
+Stage Summary:
+- Website fully restored aur live hai port 3000 pe (standalone production server, stable)
+- Saare previous tasks intact: ReactBits Pro landing (pro-* components), Hydro auth, Fixly-style Operations Center, logo, NaN-safe helpers
+- Screenshots: download/restore-check-landing.png, restore-check-ops-center.png
+- Note: server start karne ka sahi tarika - (setsid nohup bun .next/standalone/server.js > server.log 2>&1 < /dev/null &)
