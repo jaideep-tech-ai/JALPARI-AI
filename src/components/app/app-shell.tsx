@@ -125,12 +125,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={cn(
           'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
           active
-            ? 'bg-sky-500/10 font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
+            ? 'bg-emerald-500/10 font-semibold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         )}
         aria-current={active ? 'page' : undefined}
       >
-        <Icon className={cn('size-4 shrink-0', active && 'text-sky-600 dark:text-sky-400')} />
+        <Icon className={cn('size-4 shrink-0', active && 'text-emerald-600 dark:text-emerald-400')} />
         <span className="truncate">{n.label === 'overview' ? to('overview') : n.label === 'reports' ? to('reports') : n.label === 'workOrders' ? to('workOrders') : t(n.label as 'dashboard')}</span>
       </button>
     );
@@ -272,7 +272,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-[1200] border-b border-border/70 bg-background/85 backdrop-blur">
+        <header className="sticky top-0 z-[1200] border-b border-border/70 bg-background/90 shadow-[0_1px_0_color-mix(in_srgb,var(--jg-aqua)_12%,transparent)] backdrop-blur-xl">
           <div className="flex h-14 items-center gap-2 px-3 md:px-5">
             <Button variant="ghost" size="icon" className="size-8 shrink-0" onClick={() => setMobileNavOpen(true)} aria-label="Open navigation">
               <Menu className="size-4.5" />

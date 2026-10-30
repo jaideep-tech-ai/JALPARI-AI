@@ -140,6 +140,10 @@
     @apply bg-background text-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  :focus-visible {
+    outline: 2px solid var(--jg-aqua);
+    outline-offset: 3px;
+  }
   /* Devanagari-friendly line height for Hindi */
   html[lang="hi"] body, .font-hi {
     line-height: 1.75;
