@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <DropdownMenuTrigger asChild>
           <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
             <Avatar className="size-9">
-              <AvatarFallback className="bg-sky-600 text-[11px] font-bold text-white">
+              <AvatarFallback className="bg-emerald-600 text-[11px] font-bold text-white">
                 {(user?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('')}
               </AvatarFallback>
             </Avatar>
@@ -221,7 +221,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => { setAppPage('settings'); onNavigate?.(); }}
             className={cn(
               'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium',
-              appPage === 'settings' ? 'bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:bg-accent'
+              appPage === 'settings' ? 'bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground hover:bg-accent'
             )}
           >
             <Settings className="size-4" /> {t('settings')}
@@ -230,7 +230,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => { setAppPage('help'); onNavigate?.(); }}
             className={cn(
               'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium',
-              appPage === 'help' ? 'bg-sky-500/10 font-semibold text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:bg-accent'
+              appPage === 'help' ? 'bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300' : 'text-muted-foreground hover:bg-accent'
             )}
           >
             <HelpCircle className="size-4" /> {t('help')}
@@ -364,7 +364,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <DropdownMenuTrigger asChild>
                     <button className="outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Profile menu">
                       <Avatar className="size-8">
-                        <AvatarFallback className="bg-sky-600 text-[10px] font-bold text-white">
+                        <AvatarFallback className="bg-emerald-600 text-[10px] font-bold text-white">
                           {(user?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('')}
                         </AvatarFallback>
                       </Avatar>

@@ -194,7 +194,7 @@ export function OperationsCenter() {
               </Button>
             )}
             {canRerun && (
-              <Button size="sm" className="h-8 bg-sky-600 text-xs font-semibold text-white hover:bg-sky-500" onClick={() => setAppPage('interventions')}>
+              <Button size="sm" className="h-8 bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-500" onClick={() => setAppPage('interventions')}>
                 <Lightbulb className="size-3.5" /> {t('recommendations')}
               </Button>
             )}
@@ -296,7 +296,7 @@ export function OperationsCenter() {
 
         <OpsCard
           title={t('liveMap')}
-          action={<button onClick={() => setAppPage('map')} className="text-[12px] font-semibold text-sky-600 hover:underline dark:text-sky-400">{t('viewFullMap')}</button>}
+          action={<button onClick={() => setAppPage('map')} className="text-[12px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400">{t('viewFullMap')}</button>}
           className="lg:col-span-2"
           bodyClassName="px-3 pb-3"
         >
@@ -340,7 +340,7 @@ export function OperationsCenter() {
               key={key}
               onClick={() => setTab(key)}
               className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-colors ${
-                tab === key ? 'bg-sky-600 text-white' : 'border border-border/70 bg-card text-muted-foreground hover:bg-muted'
+                tab === key ? 'bg-emerald-600 text-white' : 'border border-border/70 bg-card text-muted-foreground hover:bg-muted'
               }`}
             >
               {label} {num(n)}
